@@ -9,23 +9,23 @@ metadata:
     app.kubernetes.io/name: '{{ meta.name }}'
     app.kubernetes.io/version: '{{ tower_image_version }}'
     app.kubernetes.io/part-of: '{{ meta.name }}'
-    app.kubernetes.io/managed-by: awx-operator
-    app.kubernetes.io/component: awx
+    app.kubernetes.io/managed-by: '{{ deployment_type }}-operator'
+    app.kubernetes.io/component: '{{ deployment_type }}'
 spec:
   replicas: {{ tower_replicas }}
   selector:
     matchLabels:
       app.kubernetes.io/name: '{{ meta.name }}'
-      app.kubernetes.io/managed-by: awx-operator
-      app.kubernetes.io/component: awx
+      app.kubernetes.io/managed-by: '{{ deployment_type }}-operator'
+      app.kubernetes.io/component: '{{ deployment_type }}'
   template:
     metadata:
       labels:
         app.kubernetes.io/name: '{{ meta.name }}'
         app.kubernetes.io/version: '{{ tower_image_version }}'
         app.kubernetes.io/part-of: '{{ meta.name }}'
-        app.kubernetes.io/managed-by: awx-operator
-        app.kubernetes.io/component: awx
+        app.kubernetes.io/managed-by: '{{ deployment_type }}-operator'
+        app.kubernetes.io/component: '{{ deployment_type }}'
     spec:
       serviceAccountName: '{{ meta.name }}'
 {% if tower_image_pull_secret %}
@@ -33,7 +33,8 @@ spec:
         - name: {{ tower_image_pull_secret }}
 {% endif %}
       containers:
-        - image: '{{ tower_redis_image }}'
+        - image: '{{ tower_redis_image }}:{{ tower_redis_image_version }}'
+          imagePullPolicy: '{{ tower_image_pull_policy }}'
           name: redis
           args: ["redis-server", "/etc/redis.conf"]
           volumeMounts:
@@ -45,7 +46,7 @@ spec:
               mountPath: "/var/run/redis"
             - name: "{{ meta.name }}-redis-data"
               mountPath: "/data"
-        - image: '{{ tower_image }}'
+        - image: '{{ tower_image }}:{{ tower_image_version }}'
           name: '{{ meta.name }}-web'
 {% if tower_web_command %}
           command: {{ tower_web_command }}
@@ -103,6 +104,8 @@ spec:
               mountPath: "/var/run/awx-rsyslog"
             - name: rsyslog-dir
               mountPath: "/var/lib/awx/rsyslog"
+            - name: "{{ meta.name }}-projects"
+              mountPath: "/var/lib/awx/projects"
 {% if development_mode | bool %}
             - name: awx-devel
               mountPath: "/awx_devel"
@@ -123,7 +126,7 @@ spec:
             {{ tower_web_extra_env | indent(width=12, indentfirst=True) }}
 {% endif %}
           resources: {{ tower_web_resource_requirements }}
-        - image: '{{ tower_image }}'
+        - image: '{{ tower_image }}:{{ tower_image_version }}'
           name: '{{ meta.name }}-task'
           imagePullPolicy: '{{ tower_image_pull_policy }}'
 {% if tower_task_privileged == true %}

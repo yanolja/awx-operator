@@ -91,6 +91,7 @@ spec:
         - urn:alm:descriptor:com.tectonic.ui:select:Ingress
         - urn:alm:descriptor:com.tectonic.ui:select:Route
         - urn:alm:descriptor:com.tectonic.ui:select:LoadBalancer
+        - urn:alm:descriptor:com.tectonic.ui:select:NodePort
       - displayName: Tower Ingress Annotations
         path: tower_ingress_annotations
         x-descriptors:
@@ -161,9 +162,13 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - displayName: PostgreSQL container resource requirements (when using a managed
-          instance)
+      - displayName: PostgreSQL container resource requirements (when using a managed instance)
         path: tower_postgres_resource_requirements
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - displayName: PostgreSQL container storage requirements (when using a managed instance)
+        path: tower_postgres_storage_requirements
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
@@ -199,8 +204,23 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:hidden
+      - displayName: Deployment Kind
+        path: kind
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+        - urn:alm:descriptor:com.tectonic.ui:hidden
+      - displayName: Deployment apiVersion
+        path: api_version
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+        - urn:alm:descriptor:com.tectonic.ui:hidden
       - displayName: Tower Image
         path: tower_image
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+        - urn:alm:descriptor:com.tectonic.ui:hidden
+      - displayName: Tower Image Version
+        path: tower_image_version
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:hidden
@@ -209,8 +229,18 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:hidden
+      - displayName: Redis Image Version
+        path: tower_redis_image_version
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+        - urn:alm:descriptor:com.tectonic.ui:hidden
       - displayName: PostgreSQL Image
         path: tower_postgres_image
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+        - urn:alm:descriptor:com.tectonic.ui:hidden
+      - displayName: PostgreSQL Image Version
+        path: tower_postgres_image_version
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:hidden
@@ -295,6 +325,7 @@ spec:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:hidden
       - displayName: Tower Task Extra Env
+        description: Environment variables to be added to Task container
         path: tower_task_extra_env
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
@@ -302,6 +333,12 @@ spec:
       - displayName: 
         path: tower_ee_extra_volume_mounts
         description: Specify volume mounts to be added to Execution container
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+        - urn:alm:descriptor:com.tectonic.ui:hidden
+      - displayName: Tower EE Images
+        description: Registry path to the Execution Environment container to use
+        path: tower_ee_images
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:hidden
@@ -322,6 +359,7 @@ spec:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:hidden
       - displayName: Tower Web Extra Env
+        description: Environment variables to be added to Web container
         path: tower_web_extra_env
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
@@ -345,6 +383,11 @@ spec:
         - urn:alm:descriptor:com.tectonic.ui:hidden
       - displayName: Tower Tolerations
         path: tower_tolerations
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+        - urn:alm:descriptor:com.tectonic.ui:hidden
+      - displayName: API Extra Settings
+        path: extra_settings
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:hidden
@@ -438,6 +481,7 @@ spec:
           - apps
           resources:
           - deployments/scale
+          - statefulsets/scale
           verbs:
           - patch
         - apiGroups:

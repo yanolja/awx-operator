@@ -1,5 +1,7 @@
 ---
 deployment_type: awx
+kind: '{{ deployment_type | upper }}'
+api_version: '{{ deployment_type }}.ansible.com/v1beta1'
 
 database_name: "{{ deployment_type }}"
 database_username: "{{ deployment_type }}"
@@ -81,13 +83,18 @@ tower_extra_volumes: ''
 
 # Use these image versions for Ansible AWX.
 
-tower_image: quay.io/ansible/awx:19.0.0
+tower_image: quay.io/ansible/awx
+tower_image_version: 19.1.0
+tower_redis_image: docker.io/redis
+tower_redis_image_version: latest
+tower_postgres_image: postgres
+tower_postgres_image_version: 12
 tower_image_pull_policy: IfNotPresent
 tower_image_pull_secret: ''
 
 tower_ee_images:
-  - name: AWX EE 0.1.1
-    image: quay.io/ansible/awx-ee:0.1.1
+  - name: AWX EE 0.2.0
+    image: quay.io/ansible/awx-ee:0.2.0
 
 tower_create_preload_data: true
 
@@ -127,9 +134,6 @@ tower_web_extra_env: ''
 tower_task_extra_volume_mounts: ''
 tower_web_extra_volume_mounts: ''
 tower_ee_extra_volume_mounts: ''
-tower_redis_image: redis:latest
-
-tower_postgres_image: postgres:12
 
 # Add a nodeSelector for the Postgres pods.
 # It must match a node's labels for the pod to be scheduled on that node.
@@ -148,10 +152,10 @@ tower_postgres_selector: ''
 #     value: "AWX"
 #     effect: "NoSchedule"
 tower_postgres_tolerations: ''
-
-tower_postgres_resource_requirements:
+tower_postgres_storage_requirements:
   requests:
     storage: 8Gi
+tower_postgres_resource_requirements: {}
 tower_postgres_storage_class: ''
 tower_postgres_data_path: '/var/lib/postgresql/data/pgdata'
 

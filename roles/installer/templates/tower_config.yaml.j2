@@ -8,8 +8,8 @@ metadata:
   labels:
     app.kubernetes.io/name: '{{ meta.name }}'
     app.kubernetes.io/part-of: '{{ meta.name }}'
-    app.kubernetes.io/managed-by: awx-operator
-    app.kubernetes.io/component: awx
+    app.kubernetes.io/managed-by: '{{ deployment_type }}-operator'
+    app.kubernetes.io/component: '{{ deployment_type }}'
 data:
   environment: |
     AWX_SKIP_MIGRATIONS=true
@@ -77,7 +77,6 @@ data:
     LOGGING['loggers']['social']['handlers'] = ['console']
     LOGGING['loggers']['system_tracking_migrations']['handlers'] = ['console']
     LOGGING['loggers']['rbac_migrations']['handlers'] = ['console']
-    LOGGING['loggers']['awx.isolated.manager.playbooks']['handlers'] = ['console']
     LOGGING['handlers']['callback_receiver'] = {'class': 'logging.NullHandler'}
     LOGGING['handlers']['task_system'] = {'class': 'logging.NullHandler'}
     LOGGING['handlers']['tower_warnings'] = {'class': 'logging.NullHandler'}
@@ -88,6 +87,10 @@ data:
     USE_X_FORWARDED_PORT = True
     BROADCAST_WEBSOCKET_PORT = 8052
     BROADCAST_WEBSOCKET_PROTOCOL = 'http'
+
+{% for item in extra_settings | default([]) %}
+    {{ item.setting }} = {{ item.value }}
+{% endfor %}
 
   nginx_conf: |
     worker_processes  1;

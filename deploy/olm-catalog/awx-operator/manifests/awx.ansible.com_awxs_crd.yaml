@@ -25,6 +25,15 @@ spec:
               deployment_type:
                 description: Name of the deployment type
                 type: string
+                default: awx
+              kind:
+                description: Kind of the deployment type
+                type: string
+                default: AWX
+              api_version:
+                description: apiVersion of the deployment type
+                type: string
+                default: awx.ansible.com/v1beta1
               development_mode:
                 description: If the deployment should be done in development mode
                 type: boolean
@@ -73,6 +82,9 @@ spec:
               tower_image:
                 description: Registry path to the application container to use
                 type: string
+              tower_image_version:
+                description: Application container image version to use
+                type: string
               tower_image_pull_policy:
                 default: IfNotPresent
                 description: The image pull policy
@@ -103,6 +115,8 @@ spec:
                 - route
                 - LoadBalancer
                 - loadbalancer
+                - NodePort
+                - nodeport
                 type: string
               tower_loadbalancer_annotations:
                 description: Annotations to add to the loadbalancer
@@ -134,31 +148,44 @@ spec:
               tower_postgres_image:
                 description: Registry path to the PostgreSQL container to use
                 type: string
+              tower_postgres_image_version:
+                description: PostgreSQL container image version to use
+                type: string
               tower_postgres_selector:
                 description: nodeSelector for the Postgres pods
                 type: string
               tower_postgres_tolerations:
                 description: node tolerations for the Postgres pods
                 type: string
-              tower_postgres_resource_requirements:
-                description: Resource requirements for the PostgreSQL container
+              tower_postgres_storage_requirements:
+                description: Storage requirements for the PostgreSQL container
                 properties:
-                  limits:
+                  requests:
                     properties:
-                      cpu:
-                        type: string
-                      memory:
-                        type: string
                       storage:
                         type: string
                     type: object
+                  limits:
+                    properties:
+                      storage:
+                        type: string
+                    type: object
+                type: object
+              tower_postgres_resource_requirements:
+                description: Resource requirements for the PostgreSQL container
+                properties:
                   requests:
                     properties:
                       cpu:
                         type: string
                       memory:
                         type: string
-                      storage:
+                    type: object
+                  limits:
+                    properties:
+                      cpu:
+                        type: string
+                      memory:
                         type: string
                     type: object
                 type: object
@@ -193,6 +220,9 @@ spec:
               tower_redis_image:
                 description: Registry path to the redis container to use
                 type: string
+              tower_redis_image_version:
+                description: Redis container image version to use
+                type: string
               tower_replicas:
                 default: 1
                 description: Number of instance replicas
@@ -225,6 +255,7 @@ spec:
                   type: string
                 type: array
               tower_task_extra_env:
+                description: Environment variables to be added to Task container
                 type: string
               tower_ee_extra_volume_mounts:
                 description: Specify volume mounts to be added to Execution container
@@ -270,6 +301,7 @@ spec:
                   type: string
                 type: array
               tower_web_extra_env:
+                description: Environment variables to be added to Web container
                 type: string
               tower_web_extra_volume_mounts:
                 description: Specify volume mounts to be added to web container
@@ -296,6 +328,16 @@ spec:
                         type: string
                     type: object
                 type: object
+              extra_settings:
+                description: Extra settings to specify for the API
+                items:
+                  properties:
+                    setting:
+                      type: string
+                    value:
+                      type: string
+                  type: object
+                type: array
             type: object
           status:
             properties:

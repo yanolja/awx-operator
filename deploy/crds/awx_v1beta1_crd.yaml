@@ -26,6 +26,15 @@ spec:
                 deployment_type:
                   description: Name of the deployment type
                   type: string
+                  default: awx
+                kind:
+                  description: Kind of the deployment type
+                  type: string
+                  default: AWX
+                api_version:
+                  description: apiVersion of the deployment type
+                  type: string
+                  default: awx.ansible.com/v1beta1
                 tower_task_privileged:
                   description: If a privileged security context should be enabled
                   type: boolean
@@ -69,6 +78,8 @@ spec:
                     - route
                     - LoadBalancer
                     - loadbalancer
+                    - NodePort
+                    - nodeport
                 tower_ingress_annotations:
                   description: Annotations to add to the ingress
                   type: string
@@ -112,6 +123,9 @@ spec:
                   type: string
                 tower_image:
                   description: Registry path to the application container to use
+                  type: string
+                tower_image_version:
+                  description: Application container image version to use
                   type: string
                 tower_ee_images:
                   description: Registry path to the Execution Environment container to use
@@ -214,15 +228,26 @@ spec:
                   type: string
                 tower_web_extra_env:
                   type: string
+                tower_ee_extra_volume_mounts:
+                  description: Specify volume mounts to be added to Execution container
+                  type: string
                 tower_task_extra_volume_mounts:
+                  description: Specify volume mounts to be added to Task container
                   type: string
                 tower_web_extra_volume_mounts:
+                  description: Specify volume mounts to be added to the Web container
                   type: string
                 tower_redis_image:
                   description: Registry path to the redis container to use
                   type: string
+                tower_redis_image_version:
+                  description: Redis container image version to use
+                  type: string
                 tower_postgres_image:
                   description: Registry path to the PostgreSQL container to use
+                  type: string
+                tower_postgres_image_version:
+                  description: PostgreSQL container image version to use
                   type: string
                 tower_postgres_selector:
                   description: nodeSelector for the Postgres pods
@@ -230,6 +255,20 @@ spec:
                 tower_postgres_tolerations:
                   description: node tolerations for the Postgres pods
                   type: string
+                tower_postgres_storage_requirements:
+                  description: Storage requirements for the PostgreSQL container
+                  properties:
+                    requests:
+                      properties:
+                        storage:
+                          type: string
+                      type: object
+                    limits:
+                      properties:
+                        storage:
+                          type: string
+                      type: object
+                  type: object
                 tower_postgres_resource_requirements:
                   description: Resource requirements for the PostgreSQL container
                   properties:
@@ -239,16 +278,12 @@ spec:
                           type: string
                         memory:
                           type: string
-                        storage:
-                          type: string
                       type: object
                     limits:
                       properties:
                         cpu:
                           type: string
                         memory:
-                          type: string
-                        storage:
                           type: string
                       type: object
                   type: object
@@ -291,6 +326,16 @@ spec:
                   description: AccessMode for the /var/lib/projects PersistentVolumeClaim
                   default: ReadWriteMany
                   type: string
+                extra_settings:
+                  description: Extra settings to specify for the API
+                  items:
+                    properties:
+                      setting:
+                        type: string
+                      value:
+                        type: string
+                    type: object
+                  type: array
               type: object
             status:
               properties:

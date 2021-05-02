@@ -27,6 +27,7 @@ An [Ansible AWX](https://github.com/ansible/awx) operator for Kubernetes built w
          * [LDAP Certificate Authority](#ldap-certificate-authority)
          * [Persisting Projects Directory](#persisting-projects-directory)
          * [Custom Volume and Volume Mount Options](#custom-volume-and-volume-mount-options)
+         * [Exporting Environment Variables to Containers](#exporting-environment-variables-to-containers)
    * [Development](#development)
       * [Testing](#testing)
          * [Testing in Docker](#testing-in-docker)
@@ -50,10 +51,12 @@ Note that the operator is not supported by Red Hat, and is in **alpha** status. 
 
 This Kubernetes Operator is meant to be deployed in your Kubernetes cluster(s) and can manage one or more AWX instances in any namespace.
 
-First you need to deploy AWX Operator into your cluster:
+First, you need to deploy AWX Operator into your cluster. Start by going to https://github.com/ansible/awx-operator/releases and making note of the latest release.
+
+Replace `<tag>` in the URL below with the version you are deploying:
 
 ```bash
-#> kubectl apply -f https://raw.githubusercontent.com/ansible/awx-operator/devel/deploy/awx-operator.yaml
+#> kubectl apply -f https://raw.githubusercontent.com/ansible/awx-operator/<tag>/deploy/awx-operator.yaml
 ```
 
 Then create a file named `my-awx.yml` with the following contents:
@@ -120,7 +123,7 @@ stringData:
 
 By default, the AWX operator is not opinionated and won't force a specific ingress type on you. So, if `tower_ingress_type` is not specified as part of the Custom Resource specification, it will default to `none` and nothing ingress-wise will be created.
 
-The AWX operator provides support for three kinds of `Ingress` to access AWX: `Ingress`, `Route` and `LoadBalancer`, To toggle between these options, you can add the following to your AWX CR:
+The AWX operator provides support for four kinds of `Ingress` to access AWX: `Ingress`, `Route`,  `LoadBalancer` and `NodePort`, To toggle between these options, you can add the following to your AWX CR:
 
   * Route
 
@@ -150,6 +153,23 @@ spec:
   tower_ingress_type: LoadBalancer
   tower_loadbalancer_protocol: http
 ```
+
+  * NodePort
+
+```yaml
+---
+spec:
+  ...
+  tower_ingress_type: NodePort
+```
+
+The AWX `Service` that gets created will have a `type` set based on the `tower_ingress_type` being used:
+
+| Ingress Type `tower_ingress_type`     | Service Type   |
+| ------------------------------------- | -------------- |
+| `LoadBalancer`                        | `LoadBalancer` |
+| `NodePort`                            | `NodePort`     |
+| `Ingress` or `Route` or not specified | `ClusterIP`    |
 
 #### TLS Termination
 
@@ -208,8 +228,11 @@ stringData:
   database: <desired database name>
   username: <username to connect as>
   password: <password to connect with>
+  sslmode: prefer
 type: Opaque
 ```
+
+**Note**: The variable `sslmode` is valid for `external` databases only. The allowed values are: `prefer`, `disable`, `allow`, `require`, `verify-ca`, `verify-full`.
 
 #### Migrating data from an old AWX instance
 
@@ -224,7 +247,8 @@ The following variables are customizable for the managed PostgreSQL service
 | Name                                 | Description                                | Default                           |
 | ------------------------------------ | ------------------------------------------ | --------------------------------- |
 | tower_postgres_image                 | Path of the image to pull                  | postgres:12                       |
-| tower_postgres_resource_requirements | PostgreSQL container resource requirements | requests: {storage: 8Gi}          |
+| tower_postgres_resource_requirements | PostgreSQL container resource requirements | Empty object                      |
+| tower_postgres_storage_requirements  | PostgreSQL container storage requirements  | requests: {storage: 8Gi}          |
 | tower_postgres_storage_class         | PostgreSQL PV storage class                | Empty string                      |
 | tower_postgres_data_path             | PostgreSQL data path                       | `/var/lib/postgresql/data/pgdata` |
 
@@ -236,10 +260,15 @@ spec:
   ...
   tower_postgres_resource_requirements:
     requests:
+      cpu: 500m
       memory: 2Gi
+    limits:
+      cpu: 1
+      memory: 4Gi
+  tower_postgres_storage_requirements:
+    requests:
       storage: 8Gi
     limits:
-      memory: 4Gi
       storage: 50Gi
   tower_postgres_storage_class: fast-ssd
 ```
@@ -252,12 +281,15 @@ spec:
 
 There are a few variables that are customizable for awx the image management.
 
-| Name                    | Description                |
-| ----------------------- | -------------------------- |
-| tower_image             | Path of the image to pull  |
-| tower_image_pull_policy | The pull policy to adopt   |
-| tower_image_pull_secret | The pull secret to use     |
-| tower_ee_images         | A list of EEs to register  |
+| Name                      | Description                |
+| --------------------------| -------------------------- |
+| tower_image               | Path of the image to pull  |
+| tower_image_version       | Image version to pull      |
+| tower_image_pull_policy   | The pull policy to adopt   |
+| tower_image_pull_secret   | The pull secret to use     |
+| tower_ee_images           | A list of EEs to register  |
+| tower_redis_image         | Path of the image to pull  |
+| tower_redis_image_version | Image version to pull      |
 
 Example of customization could be:
 
@@ -266,12 +298,15 @@ Example of customization could be:
 spec:
   ...
   tower_image: myorg/my-custom-awx
+  tower_image_version: latest
   tower_image_pull_policy: Always
   tower_image_pull_secret: pull_secret_name
   tower_ee_images:
     - name: my-custom-awx-ee
       image: myorg/my-custom-awx-ee
 ```
+
+**Note**: The `tower_image` and `tower_image_version` are intended for local mirroring scenarios. Please note that using a version of AWX other than the one bundled with the `awx-operator` is **not** supported. For the default values, check the [main.yml](https://github.com/ansible/awx-operator/blob/devel/roles/installer/defaults/main.yml) file.
 
 #### Privileged Tasks
 
@@ -331,12 +366,14 @@ the AWX pods to run only on the nodes that match all the specified key/value pai
 pods to be scheduled onto nodes with matching taints.
 
 
-| Name                       | Description                 | Default |
-| -------------------------- | --------------------------- | ------- |
-| tower_node_selector        | AWX pods' nodeSelector      | ''      |
-| tower_tolerations          | AWX pods' tolerations       | ''      |
-| tower_postgres_selector    | Postgres pods' nodeSelector | ''      |
-| tower_postgres_tolerations | Postgres pods' tolerations  | ''      |
+| Name                           | Description                 | Default |
+| -------------------------------| --------------------------- | ------- |
+| tower_postgres_image           | Path of the image to pull   | 12      |
+| tower_postgres_image_version   | Image version to pull       | 12      |
+| tower_node_selector            | AWX pods' nodeSelector      | ''      |
+| tower_tolerations              | AWX pods' tolerations       | ''      |
+| tower_postgres_selector        | Postgres pods' nodeSelector | ''      |
+| tower_postgres_tolerations     | Postgres pods' tolerations  | ''      |
 
 Example of customization could be:
 
@@ -476,6 +513,28 @@ Example spec file for volumes and volume mounts
 ```
 
 > :warning: **Volume and VolumeMount names cannot contain underscores(_)**
+
+#### Exporting Environment Variables to Containers
+
+If you need to export custom environment variables to your containers.
+
+| Name                          | Description                                              | Default |
+| ----------------------------- | -------------------------------------------------------- | ------- |
+| tower_task_extra_env          | Environment variables to be added to Task container      | ''      |
+| tower_web_extra_env           | Environment variables to be added to Web container       | ''      |
+
+Example configuration of environment variables
+
+```yaml
+  spec:
+    tower_task_extra_env: |
+      - name: MYCUSTOMVAR
+        value: foo
+    tower_web_extra_env: |
+      - name: MYCUSTOMVAR
+        value: foo
+```
+
 
 ## Development
 

@@ -12,10 +12,11 @@
   k8s_info:
     kind: Pod
     namespace: '{{ meta.namespace }}'
-    label_selectors:
-      - "app.kubernetes.io/name={{ meta.name }}-postgres"
+    name: '{{ meta.name }}-postgres-0'  # using name to keep compatibility
+    field_selectors:
+      - status.phase=Running
   register: postgres_pod
-  until: "postgres_pod['resources'][0]['status']['phase'] == 'Running'"
+  until: postgres_pod['resources'] | length
   delay: 5
   retries: 60
 
@@ -23,22 +24,8 @@
   set_fact:
     postgres_pod_name: "{{ postgres_pod['resources'][0]['metadata']['name'] }}"
 
-- name: Check for presence of Deployment
-  k8s_info:
-    api_version: v1
-    kind: Deployment
-    name: "{{ meta.name }}"
-    namespace: "{{ meta.namespace }}"
-  register: tower_deployment
-
 - name: Scale down Deployment for migration
-  k8s_scale:
-    api_version: v1
-    kind: Deployment
-    name: "{{ meta.name }}"
-    namespace: "{{ meta.namespace }}"
-    replicas: 0
-  when: tower_deployment['resources'] | length
+  include_tasks: scale_down_deployment.yml
 
 - name: Set pg_dump command
   set_fact:
