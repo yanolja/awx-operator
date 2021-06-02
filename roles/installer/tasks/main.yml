@@ -15,6 +15,7 @@
           app.kubernetes.io/part-of: '{{ meta.name }}'
           app.kubernetes.io/managed-by: '{{ deployment_type }}-operator'
           app.kubernetes.io/component: '{{ deployment_type }}'
+          app.kubernetes.io/operator-version: '{{ lookup("env", "OPERATOR_VERSION") }}'
 
 - name: Include secret key configuration tasks
   include_tasks: secret_key_configuration.yml
@@ -36,8 +37,8 @@
 - name: Load Route TLS certificate
   include_tasks: load_route_tls_secret.yml
   when:
-    - tower_ingress_type | lower == 'route'
-    - tower_route_tls_secret != ''
+    - ingress_type | lower == 'route'
+    - route_tls_secret != ''
 
 - name: Include resources configuration tasks
   include_tasks: resources_configuration.yml
@@ -69,3 +70,6 @@
 
 - name: Update status variables
   include_tasks: update_status.yml
+
+- name: Cleanup & Set garbage collection refs
+  include_tasks: cleanup.yml

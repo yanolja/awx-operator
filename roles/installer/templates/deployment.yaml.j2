@@ -1,0 +1,328 @@
+# AWX Deployment.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: '{{ meta.name }}'
+  namespace: '{{ meta.namespace }}'
+  labels:
+    app.kubernetes.io/name: '{{ meta.name }}'
+    app.kubernetes.io/version: '{{ image_version }}'
+    app.kubernetes.io/part-of: '{{ meta.name }}'
+    app.kubernetes.io/managed-by: '{{ deployment_type }}-operator'
+    app.kubernetes.io/component: '{{ deployment_type }}'
+    app.kubernetes.io/operator-version: '{{ lookup("env", "OPERATOR_VERSION") }}'
+spec:
+  replicas: {{ replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: '{{ meta.name }}'
+      app.kubernetes.io/managed-by: '{{ deployment_type }}-operator'
+      app.kubernetes.io/component: '{{ deployment_type }}'
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: '{{ meta.name }}'
+        app.kubernetes.io/version: '{{ image_version }}'
+        app.kubernetes.io/part-of: '{{ meta.name }}'
+        app.kubernetes.io/managed-by: '{{ deployment_type }}-operator'
+        app.kubernetes.io/component: '{{ deployment_type }}'
+    spec:
+      serviceAccountName: '{{ meta.name }}'
+{% if image_pull_secret %}
+      imagePullSecrets:
+        - name: {{ image_pull_secret }}
+{% endif %}
+      containers:
+        - image: '{{ redis_image }}:{{ redis_image_version }}'
+          imagePullPolicy: '{{ image_pull_policy }}'
+          name: redis
+          args: ["redis-server", "/etc/redis.conf"]
+          volumeMounts:
+            - name: {{ meta.name }}-redis-config
+              mountPath: "/etc/redis.conf"
+              subPath: redis.conf
+              readOnly: true
+            - name: {{ meta.name }}-redis-socket
+              mountPath: "/var/run/redis"
+            - name: "{{ meta.name }}-redis-data"
+              mountPath: "/data"
+        - image: '{{ image }}:{{ image_version }}'
+          name: '{{ meta.name }}-web'
+{% if web_command %}
+          command: {{ web_command }}
+{% endif %}
+{% if web_args %}
+          args: {{ web_args }}
+{% endif %}
+          imagePullPolicy: '{{ image_pull_policy }}'
+          ports:
+            - containerPort: 8052
+{% if ingress_type | lower == 'route' and route_tls_termination_mechanism | lower == 'passthrough' %}
+            - containerPort: 8053
+{% endif %}
+          volumeMounts:
+            - name: "{{ meta.name }}-application-credentials"
+              mountPath: "/etc/tower/conf.d/execution_environments.py"
+              subPath: execution_environments.py
+              readOnly: true
+            - name: "{{ meta.name }}-application-credentials"
+              mountPath: "/etc/tower/conf.d/credentials.py"
+              subPath: credentials.py
+              readOnly: true
+            - name: "{{ meta.name }}-application-credentials"
+              mountPath: "/etc/tower/conf.d/ldap.py"
+              subPath: ldap.py
+              readOnly: true
+{% if ingress_type | lower == 'route' and route_tls_termination_mechanism | lower == 'passthrough' %}
+            - name: "{{ meta.name }}-nginx-certs"
+              mountPath: "/etc/nginx/pki"
+              readOnly: true
+{% endif %}
+{% if ldap_cacert_ca_crt %}
+            - name: "{{ meta.name }}-ldap-cacert"
+              mountPath: /etc/openldap/certs/ldap-ca.crt
+              subPath: ldap-ca.crt
+              readOnly: true
+{% endif %}
+            - name: "{{ secret_key_secret_name }}"
+              mountPath: /etc/tower/SECRET_KEY
+              subPath: SECRET_KEY
+              readOnly: true
+            - name: {{ meta.name }}-settings
+              mountPath: /etc/tower/settings.py
+              subPath: settings.py
+              readOnly: true
+            - name: {{ meta.name }}-nginx-conf
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+              readOnly: true
+            - name: {{ meta.name }}-redis-socket
+              mountPath: "/var/run/redis"
+            - name: supervisor-socket
+              mountPath: "/var/run/supervisor"
+            - name: rsyslog-socket
+              mountPath: "/var/run/awx-rsyslog"
+            - name: rsyslog-dir
+              mountPath: "/var/lib/awx/rsyslog"
+            - name: "{{ meta.name }}-projects"
+              mountPath: "/var/lib/awx/projects"
+{% if development_mode | bool %}
+            - name: awx-devel
+              mountPath: "/awx_devel"
+{% endif %}
+{% if web_extra_volume_mounts -%}
+            {{ web_extra_volume_mounts | indent(width=12, indentfirst=True) }}
+{% endif %}
+          env:
+            - name: MY_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+{% if development_mode | bool %}
+            - name: AWX_KUBE_DEVEL
+              value: "1"
+{% endif %}
+{% if web_extra_env -%}
+            {{ web_extra_env | indent(width=12, indentfirst=True) }}
+{% endif %}
+          resources: {{ web_resource_requirements }}
+        - image: '{{ image }}:{{ image_version }}'
+          name: '{{ meta.name }}-task'
+          imagePullPolicy: '{{ image_pull_policy }}'
+{% if task_privileged == true %}
+          securityContext:
+            privileged: true
+{% endif %}
+{% if task_command %}
+          command: {{ task_command }}
+{% endif %}
+{% if task_args %}
+          args: {{ task_args }}
+{% endif %}
+          volumeMounts:
+            - name: "{{ meta.name }}-application-credentials"
+              mountPath: "/etc/tower/conf.d/execution_environments.py"
+              subPath: execution_environments.py
+              readOnly: true
+            - name: "{{ meta.name }}-application-credentials"
+              mountPath: "/etc/tower/conf.d/credentials.py"
+              subPath: credentials.py
+              readOnly: true
+            - name: "{{ meta.name }}-application-credentials"
+              mountPath: "/etc/tower/conf.d/ldap.py"
+              subPath: ldap.py
+              readOnly: true
+            - name: "{{ secret_key_secret_name }}"
+              mountPath: /etc/tower/SECRET_KEY
+              subPath: SECRET_KEY
+              readOnly: true
+            - name: {{ meta.name }}-settings
+              mountPath: /etc/tower/settings.py
+              subPath: settings.py
+              readOnly: true
+            - name: {{ meta.name }}-redis-socket
+              mountPath: "/var/run/redis"
+            - name: supervisor-socket
+              mountPath: "/var/run/supervisor"
+            - name: rsyslog-socket
+              mountPath: "/var/run/awx-rsyslog"
+            - name: rsyslog-dir
+              mountPath: "/var/lib/awx/rsyslog"
+            - name: receptor-socket
+              mountPath: "/var/run/receptor"
+            - name: "{{ meta.name }}-projects"
+              mountPath: "/var/lib/awx/projects"
+{% if development_mode | bool %}
+            - name: awx-devel
+              mountPath: "/awx_devel"
+{% endif %}
+{% if task_extra_volume_mounts -%}
+            {{ task_extra_volume_mounts | indent(width=12, indentfirst=True) }}
+{% endif %}
+          env:
+            - name: SUPERVISOR_WEB_CONFIG_PATH
+              value: "/etc/supervisord.conf"
+            - name: AWX_SKIP_MIGRATIONS
+              value: "1"
+            - name: MY_POD_UID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: MY_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+{% if development_mode | bool %}
+            - name: AWX_KUBE_DEVEL
+              value: "1"
+{% endif %}
+{% if task_extra_env -%}
+            {{ task_extra_env | indent(width=12, indentfirst=True) }}
+{% endif %}
+          resources: {{ task_resource_requirements }}
+        - image: '{{ ee_images[0].image }}'
+          name: '{{ meta.name }}-ee'
+          imagePullPolicy: '{{ image_pull_policy }}'
+          args: ['receptor', '--config', '/etc/receptor.conf']
+          volumeMounts:
+            - name: "{{ meta.name }}-receptor-config"
+              mountPath: "/etc/receptor.conf"
+              subPath: receptor.conf
+              readOnly: true
+            - name: receptor-socket
+              mountPath: "/var/run/receptor"
+            - name: "{{ meta.name }}-projects"
+              mountPath: "/var/lib/awx/projects"
+{% if ee_extra_volume_mounts -%}
+            {{ ee_extra_volume_mounts | indent(width=12, indentfirst=True) }}
+{% endif %}
+{% if development_mode | bool %}
+          env:
+            - name: SDB_NOTIFY_HOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+{% endif %}
+{% if node_selector %}
+      nodeSelector:
+        {{ node_selector | indent(width=8) }}
+{% endif %}
+{% if tolerations %}
+      tolerations:
+        {{ tolerations | indent(width=8) }}
+{% endif %}
+      volumes:
+{% if ingress_type | lower == 'route' and route_tls_termination_mechanism | lower == 'passthrough' %}
+        - name: "{{ meta.name }}-nginx-certs"
+          secret:
+            secretName: "{{ route_tls_secret }}"
+            items:
+              - key: tls.key
+                path: 'web.key'
+              - key: tls.crt
+                path: 'web.crt'
+{% endif %}
+{% if ldap_cacert_ca_crt %}
+        - name: "{{ meta.name }}-ldap-cacert"
+          secret:
+            secretName: "{{ ldap_cacert_secret }}"
+            items:
+              - key: ldap-ca.crt
+                path: 'ldap-ca.crt'
+{% endif %}
+        - name: "{{ meta.name }}-application-credentials"
+          secret:
+            secretName: "{{ meta.name }}-app-credentials"
+            items:
+              - key: credentials.py
+                path: 'credentials.py'
+              - key: ldap.py
+                path: 'ldap.py'
+              - key: execution_environments.py
+                path: 'execution_environments.py'
+        - name: "{{ secret_key_secret_name }}"
+          secret:
+            secretName: '{{ secret_key_secret_name }}'
+            items:
+              - key: secret_key
+                path: SECRET_KEY
+        - name: {{ meta.name }}-settings
+          configMap:
+            name: '{{ meta.name }}-{{ deployment_type }}-configmap'
+            items:
+              - key: settings
+                path: settings.py
+        - name: {{ meta.name }}-nginx-conf
+          configMap:
+            name: '{{ meta.name }}-{{ deployment_type }}-configmap'
+            items:
+              - key: nginx_conf
+                path: nginx.conf
+        - name: {{ meta.name }}-redis-config
+          configMap:
+            name: {{ meta.name }}-{{ deployment_type }}-configmap
+            items:
+              - key: redis_conf
+                path: redis.conf
+        - name: {{ meta.name }}-redis-socket
+          emptyDir: {}
+        - name: {{ meta.name }}-redis-data
+          emptyDir: {}
+        - name: supervisor-socket
+          emptyDir: {}
+        - name: rsyslog-socket
+          emptyDir: {}
+        - name: receptor-socket
+          emptyDir: {}
+        - name: rsyslog-dir
+          emptyDir: {}
+        - name: {{ meta.name }}-receptor-config
+          configMap:
+            name: '{{ meta.name }}-{{ deployment_type }}-configmap'
+            items:
+              - key: receptor_conf
+                path: receptor.conf
+        - name: "{{ meta.name }}-projects"
+{% if projects_persistence|bool %}
+          persistentVolumeClaim:
+{% if projects_existing_claim %}
+            claimName: {{ projects_existing_claim }}
+{% else %}
+            claimName: '{{ meta.name }}-projects-claim'
+{% endif %}
+{% else %}
+          emptyDir: {}
+{% endif %}
+{% if development_mode | bool %}
+        - name: awx-devel
+          hostPath:
+            path: /awx_devel
+{% endif %}
+{% if extra_volumes -%}
+        {{ extra_volumes | indent(width=8, indentfirst=True) }}
+{% endif %}

@@ -6,14 +6,14 @@ To migrate data from an older AWX installation, you must provide some informatio
 
 ### Secret Key
 
-You can find your old secret key in the inventory file you used to deploy AWX in releases prior to version 18. 
+You can find your old secret key in the inventory file you used to deploy AWX in releases prior to version 18.
 
 ```yaml
 apiVersion: v1
 kind: Secret
 metadata:
   name: <resourcename>-secret-key
-  namespace: <target namespace>
+  namespace: <target-namespace>
 stringData:
   secret_key: <old-secret-key>
 type: Opaque
@@ -45,9 +45,12 @@ type: Opaque
 
 If your AWX deployment is already using an external database server or its database is otherwise not managed
 by the AWX deployment, you can instead create the same secret as above but omit the `-old-` from the `name`.
-In the next section pass it in through `tower_postgres_configuration_secret` instead, omitting the `_old_`
+In the next section pass it in through `postgres_configuration_secret` instead, omitting the `_old_`
 from the key and ensuring the value matches the name of the secret. This will make AWX pick up on the existing
 database and apply any pending migrations. It is strongly recommended to backup your database beforehand.
+
+The postgresql pod for the old deployment is used when streaming data to the new postgresql pod.  If your postgresql pod has a custom label,
+you can pass that via the `postgres_label_selector` variable to make sure the postgresql pod can be found.
 
 ## Deploy AWX
 
@@ -59,6 +62,6 @@ kind: AWX
 metadata:
   name: awx
 spec:
-  tower_old_postgres_configuration_secret: <resourcename>-old-postgres-configuration
+  old_postgres_configuration_secret: <resourcename>-old-postgres-configuration
   ...
 ```
