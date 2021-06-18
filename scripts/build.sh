@@ -1,5 +1,5 @@
 #!/bin/bash
-## This script will be build 3 images awx-{operator,bundle,catalog}
+## This script will generate a bundle manifest, build 3 images awx-{operator,bundle,catalog}
 ## and push to the $REGISTRY specified.
 ##
 ## The goal is provide an quick way to build a test image.
@@ -10,7 +10,7 @@
 ## cd awx-operator
 ## REGISTRY=registry.example.com/ansible TAG=mytag ANSIBLE_DEBUG_LOGS=true scripts/build.sh
 ##
-## As a result, the $REGISTRY will be populated with 2 images
+## As a result, the $REGISTRY will be populated with 3 images
 ## registry.example.com/ansible/awx-operator:mytag
 ## registry.example.com/ansible/awx-operator-bundle:mytag
 ## registry.example.com/ansible/awx-operator-catalog:mytag
@@ -78,6 +78,7 @@ build_operator_image() {
 
 build_bundle_image() {
   echo "Building and pushing $BUNDLE_IMAGE image"
+  operator-sdk generate bundle --operator-name awx-operator --version $TAG
   $POD_MANAGER build . -f bundle.Dockerfile -t $REGISTRY/$BUNDLE_IMAGE:$TAG
   $POD_MANAGER push $REGISTRY/$BUNDLE_IMAGE:$TAG
 }

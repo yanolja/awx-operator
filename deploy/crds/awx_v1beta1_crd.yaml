@@ -26,15 +26,12 @@ spec:
                 deployment_type:
                   description: Name of the deployment type
                   type: string
-                  default: awx
                 kind:
                   description: Kind of the deployment type
                   type: string
-                  default: AWX
                 api_version:
                   description: apiVersion of the deployment type
                   type: string
-                  default: awx.ansible.com/v1beta1
                 task_privileged:
                   description: If a privileged security context should be enabled
                   type: boolean
@@ -149,6 +146,12 @@ spec:
                         type: string
                       image:
                         type: string
+                control_plane_ee_image:
+                  description: Registry path to the Execution Environment container image to use on control plane pods
+                  type: string
+                ee_pull_credentials_secret:
+                  description: Secret where pull credentials for registered ees can be found
+                  type: string
                 image_pull_policy:
                   description: The image pull policy
                   type: string
@@ -207,6 +210,28 @@ spec:
                           type: string
                       type: object
                   type: object
+                ee_resource_requirements:
+                  description: Resource requirements for the ee container
+                  properties:
+                    requests:
+                      properties:
+                        cpu:
+                          type: string
+                        memory:
+                          type: string
+                        storage:
+                          type: string
+                      type: object
+                    limits:
+                      properties:
+                        cpu:
+                          type: string
+                        memory:
+                          type: string
+                        storage:
+                          type: string
+                      type: object
+                  type: object
                 service_account_annotations:
                   description: ServiceAccount annotations
                   type: string
@@ -242,6 +267,8 @@ spec:
                 task_extra_env:
                   type: string
                 web_extra_env:
+                  type: string
+                ee_extra_env:
                   type: string
                 ee_extra_volume_mounts:
                   description: Specify volume mounts to be added to Execution container

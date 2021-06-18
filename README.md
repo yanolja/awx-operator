@@ -28,6 +28,7 @@ An [Ansible AWX](https://github.com/ansible/awx) operator for Kubernetes built w
          * [Persisting Projects Directory](#persisting-projects-directory)
          * [Custom Volume and Volume Mount Options](#custom-volume-and-volume-mount-options)
          * [Exporting Environment Variables to Containers](#exporting-environment-variables-to-containers)
+         * [Extra Settings](#extra-settings)
          * [Service Account](#service-account)
    * [Upgrading](#upgrading)
    * [Contributing](#contributing)
@@ -427,10 +428,11 @@ Again, this is the most relaxed SCC that is provided by OpenShift, so be sure to
 
 The resource requirements for both, the task and the web containers are configurable - both the lower end (requests) and the upper end (limits).
 
-| Name                             | Description                          | Default                             |
-| -------------------------------- | ------------------------------------ | ----------------------------------- |
-| web_resource_requirements        | Web container resource requirements  | requests: {cpu: 1000m, memory: 2Gi} |
-| task_resource_requirements       | Task container resource requirements | requests: {cpu: 500m, memory: 1Gi}  |
+| Name                             | Description                                      | Default                             |
+| -------------------------------- | ------------------------------------------------ | ----------------------------------- |
+| web_resource_requirements        | Web container resource requirements              | requests: {cpu: 1000m, memory: 2Gi} |
+| task_resource_requirements       | Task container resource requirements             | requests: {cpu: 500m, memory: 1Gi}  |
+| ee_resource_requirements         | EE control plane container resource requirements | requests: {cpu: 500m, memory: 1Gi}  |
 
 Example of customization could be:
 
@@ -446,6 +448,13 @@ spec:
       cpu: 2000m
       memory: 4Gi
   task_resource_requirements:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+  ee_resource_requirements:
     requests:
       cpu: 500m
       memory: 1Gi
@@ -556,6 +565,30 @@ In a scenario where custom volumes and volume mounts are required to either over
 
 Example configuration for ConfigMap
 
+#### Default execution environments from private registries
+
+In order to register default execution environments from private registries, the Custom Resource needs to know about the pull credentials. Those credentials should be stored as a secret and either specified as `ee_pull_credentials_secret` at the CR spec level, or simply be present on the namespace under the name `<resourcename>-ee-pull-credentials` . Instance initialization will register a `Container registry` type credential on the deployed instance and assign it to the registered default execution environments.
+
+The secret should be formated as follows:
+
+```yaml
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: <resourcename>-ee-pull-credentials
+  namespace: <target namespace>
+stringData:
+  url: <registry url. i.e. quay.io>
+  username: <username to connect as>
+  password: <password to connect with>
+  ssl_verify: <Optional attribute. Whether verify ssl connection or not. Accepted values "True" (default), "False" >
+type: Opaque
+```
+
+##### Control plane ee from private registry
+The images listed in "ee_images" will be added as globally available Execution Environments. The "control_plane_ee_image" will be used to run project updates. In order to use a private image for any of these you'll need to use `image_pull_secret` to provide a k8s pull secret to access it. Currently the same secret is used for any of these images supplied at install time.
+
 ```yaml
 ---
 apiVersion: v1
@@ -617,6 +650,7 @@ If you need to export custom environment variables to your containers.
 | ----------------------------- | -------------------------------------------------------- | ------- |
 | task_extra_env                | Environment variables to be added to Task container      | ''      |
 | web_extra_env                 | Environment variables to be added to Web container       | ''      |
+| ee_extra_env                  | Environment variables to be added to EE container        | ''      |
 
 Example configuration of environment variables
 
@@ -628,6 +662,29 @@ Example configuration of environment variables
     web_extra_env: |
       - name: MYCUSTOMVAR
         value: foo
+    ee_extra_env: |
+      - name: MYCUSTOMVAR
+        value: foo
+```
+
+#### Extra Settings
+
+With`extra_settings`, you can pass multiple custom settings via the `awx-operator`. The parameter `extra_settings`  will be appended to the `/etc/tower/settings.py` and can be an alternative to the `extra_volumes` parameter.
+
+| Name                          | Description                                              | Default |
+| ----------------------------- | -------------------------------------------------------- | ------- |
+| extra_settings                | Extra settings                                           | ''      |
+
+Example configuration of `extra_settings` parameter
+
+```yaml
+  spec:
+    extra_settings:
+      - setting: MAX_PAGE_SIZE
+        value: "500"
+
+      - setting: AUTH_LDAP_BIND_DN
+        value: "cn=admin,dc=example,dc=com"
 ```
 
 #### Service Account
@@ -662,43 +719,13 @@ Please visit [our contributing guidelines](https://github.com/ansible/awx-operat
 
 There are a few moving parts to this project:
 
-  1. The Docker image which powers AWX Operator.
-  2. The `awx-operator.yaml` Kubernetes manifest file which initially deploys the Operator into a cluster.
-  3. Then use the command below to generate a list of commits between the versions.
-  ```sh
-  #> git log --no-merges --pretty="- %s (%an) - %h " <old_tag>..<new_tag>
-  ```
+  * The `awx-operator` container image which powers AWX Operator
+  * The `awx-operator.yaml` file, which initially deploys the Operator
+  * The ClusterServiceVersion (CSV), which is generated as part of the bundle and needed for the olm-catalog
 
 Each of these must be appropriately built in preparation for a new tag:
 
-### Verify Functionality
-
-Run the following command inside this directory:
-
-```sh
-#> operator-sdk build quay.io/<user>/awx-operator:test
-```
-
-Then push the generated image to Docker Hub:
-
-```sh
-#> docker push quay.io/<user>/awx-operator:test
-```
-
-After it is built, test it on a local cluster:
-
-
-```sh
-#> minikube start --memory 6g --cpus 4
-#> minikube addons enable ingress
-#> ansible-playbook ansible/deploy-operator.yml -e operator_image=quay.io/<user>/awx-operator -e operator_version=test
-#> kubectl create namespace example-awx
-#> ansible-playbook ansible/instantiate-awx-deployment.yml -e namespace=example-awx
-#> <test everything>
-#> minikube delete
-```
-
-### Update version
+### Update version and files
 
 Update the awx-operator version:
 
@@ -708,6 +735,51 @@ Once the version has been updated, run from the root of the repo:
 
 ```sh
 #> ansible-playbook ansible/chain-operator-files.yml
+```
+
+Generate the olm-catalog bundle.
+
+```bash
+$ operator-sdk generate bundle --operator-name awx-operator --version <new_tag>
+```
+
+> This should be done with operator-sdk v0.19.4.  
+
+> It is a good idea to use the [build script](./build.sh) at this point to build the catalog and test out installing it in Operator Hub.
+
+### Verify Functionality
+
+Run the following command inside this directory:
+
+```sh
+#> operator-sdk build quay.io/<user>/awx-operator:<new-version>
+```
+
+Then push the generated image to Docker Hub:
+
+```sh
+#> docker push quay.io/<user>/awx-operator:<new-version>
+```
+
+After it is built, test it on a local cluster:
+
+
+```sh
+#> minikube start --memory 6g --cpus 4
+#> minikube addons enable ingress
+#> ansible-playbook ansible/deploy-operator.yml -e operator_image=quay.io/<user>/awx-operator -e operator_version=<new-version> -e pull_policy=Always
+#> kubectl create namespace example-awx
+#> ansible-playbook ansible/instantiate-awx-deployment.yml -e namespace=example-awx -e image=quay.io/<user>/awx -e service_type=nodeport
+#> # Verify that the awx-task and awx-web containers are launched 
+#> # with the right version of the awx image
+#> minikube delete
+```
+
+### Update changelog
+
+Generate a list of commits between the versions and add it to the [changelog](./CHANGELOG.md).
+```sh
+#> git log --no-merges --pretty="- %s (%an) - %h " <old_tag>..<new_tag>
 ```
 
 ### Commit / Create Release
