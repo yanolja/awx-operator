@@ -10,11 +10,8 @@
 
 - name: Set AWX object
   set_fact:
-    _awx: "{{ _awx_cro['resources'][0] }}"
-
-- name: Set user specified spec
-  set_fact:
-    awx_spec: "{{ _awx['spec'] }}"
+    awx_spec:
+      spec: "{{ this_awx['resources'][0]['spec'] }}"
 
 - name: Set names of backed up secrets in the CR spec
   set_fact:
@@ -23,11 +20,11 @@
     - {"key": "secret_key_secret", "value": "{{ this_awx['resources'][0]['status']['secretKeySecret'] }}"}
     - {"key": "admin_password_secret", "value": "{{ this_awx['resources'][0]['status']['adminPasswordSecret'] }}"}
     - {"key": "broadcast_websocket_secret", "value": "{{ this_awx['resources'][0]['status']['broadcastWebsocketSecret'] }}"}
-    - {"key": "postgres_configuration_secret", "value": "{{ this_awx['resources'][0]['status']['postgresConfigurationSecret'] }} "}
+    - {"key": "postgres_configuration_secret", "value": "{{ this_awx['resources'][0]['status']['postgresConfigurationSecret'] }}"}
 
 - name: Write awx object to pvc
   k8s_exec:
     namespace: "{{ backup_pvc_namespace }}"
     pod: "{{ meta.name }}-db-management"
     command: >-
-      bash -c 'echo "$0" > {{ backup_dir  }}/awx_object' {{ awx_spec | quote  }}
+      bash -c 'echo "$0" > {{ backup_dir  }}/awx_object' {{ awx_spec | to_yaml | quote  }}

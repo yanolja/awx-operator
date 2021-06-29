@@ -46,7 +46,7 @@ data:
     AWX_AUTO_DEPROVISION_INSTANCES = True
     
     CLUSTER_HOST_ID = socket.gethostname()
-    SYSTEM_UUID = '00000000-0000-0000-0000-000000000000'
+    SYSTEM_UUID = os.environ.get('MY_POD_UID', '00000000-0000-0000-0000-000000000000')
     
     CSRF_COOKIE_SECURE = False
     SESSION_COOKIE_SECURE = False
@@ -90,11 +90,7 @@ data:
     BROADCAST_WEBSOCKET_PROTOCOL = 'http'
 
 {% for item in extra_settings | default([]) %}
-{% if item.value is string %}
-    {{ item.setting }} = '{{ item.value }}'
-{% else %}
     {{ item.setting }} = {{ item.value }}
-{% endif %}
 {% endfor %}
 
   nginx_conf: |
