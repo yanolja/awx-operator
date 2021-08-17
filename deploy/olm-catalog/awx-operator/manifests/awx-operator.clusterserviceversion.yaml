@@ -39,7 +39,7 @@ metadata:
     capabilities: Basic Install
     operators.operatorframework.io/builder: operator-sdk-v0.19.4
     operators.operatorframework.io/project_layout: ansible
-  name: awx-operator.v0.12.0
+  name: awx-operator.v0.13.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -78,6 +78,16 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:hidden
+      - displayName: PostgreSQL Image
+        path: postgres_image
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+        - urn:alm:descriptor:com.tectonic.ui:hidden
+      - displayName: PostgreSQL Image Version
+        path: postgres_image_version
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+        - urn:alm:descriptor:com.tectonic.ui:hidden
       statusDescriptors:
       - description: The persistent volume claim name used during backup
         displayName: Backup claim
@@ -104,21 +114,19 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
         - urn:alm:descriptor:com.tectonic.ui:fieldDependency:backup_source:CR
-      - displayName: Deployment name
+      - displayName: Name of newly restored deployment
         path: deployment_name
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
-        - urn:alm:descriptor:com.tectonic.ui:fieldDependency:backup_source:PVC
       - displayName: Backup persistent volume claim
         path: backup_pvc
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
         - urn:alm:descriptor:com.tectonic.ui:fieldDependency:backup_source:PVC
-      - displayName: Backup persistent volume claim namespace
+      - displayName: Backup namespace
         path: backup_pvc_namespace
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
-        - urn:alm:descriptor:com.tectonic.ui:fieldDependency:backup_source:PVC
       - displayName: Backup directory in the persistent volume claim
         path: backup_dir
         x-descriptors:
@@ -127,6 +135,16 @@ spec:
       - displayName: Database restore label selector
         path: postgres_label_selector
         x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:hidden
+      - displayName: PostgreSQL Image
+        path: postgres_image
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+        - urn:alm:descriptor:com.tectonic.ui:hidden
+      - displayName: PostgreSQL Image Version
+        path: postgres_image_version
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:hidden
       statusDescriptors:
       - description: The state of the restore
@@ -547,6 +565,18 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:hidden
+      - description: Specify Extra commands for the Init container
+        displayName: Init Container Extra Commands
+        path: init_container_extra_commands
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+        - urn:alm:descriptor:com.tectonic.ui:hidden
+      - description: Specify volume mounts to be added to Init container
+        displayName: Init Container Extra Volume Mounts
+        path: init_container_extra_volume_mounts
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+        - urn:alm:descriptor:com.tectonic.ui:hidden
       - description: Secret where can be found the trusted Certificate Authority Bundle
         path: bundle_cacert_secret
         x-descriptors:
@@ -695,10 +725,10 @@ spec:
                 - name: ANSIBLE_GATHERING
                   value: explicit
                 - name: OPERATOR_VERSION
-                  value: 0.12.0
+                  value: 0.13.0
                 - name: ANSIBLE_DEBUG_LOGS
                   value: "false"
-                image: quay.io/ansible/awx-operator:0.12.0
+                image: quay.io/ansible/awx-operator:0.13.0
                 imagePullPolicy: Always
                 livenessProbe:
                   httpGet:
@@ -737,5 +767,5 @@ spec:
   provider:
     name: AWX Community
     url: https://github.com/ansible/awx-operator
-  replaces: awx-operator.v0.11.0
-  version: 0.12.0
+  replaces: awx-operator.v0.12.0
+  version: 0.13.0
