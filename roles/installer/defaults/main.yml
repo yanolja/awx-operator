@@ -10,6 +10,7 @@ task_privileged: false
 service_type: ClusterIP
 ingress_type: none
 ingress_path: '/'
+ingress_path_type: 'Prefix'
 # Add annotations to the service account. Specify as literal block. E.g.:
 # service_account_annotations: |
 #   eks.amazonaws.com/role-arn: arn:aws:iam::<ACCOUNT_ID>:role/<IAM_ROLE_NAME>
@@ -37,6 +38,7 @@ loadbalancer_protocol: 'http'
 loadbalancer_port: '80'
 loadbalancer_annotations: ''
 
+nodeport_port: '30080'
 # The TLS termination mechanism to use to access
 # the services. Supported mechanism are: edge, passthrough
 #
@@ -52,7 +54,7 @@ route_tls_secret: ''
 #
 route_host: ''
 
-hostname: '{{ meta.name }}.example.com'
+hostname: ''
 
 # Add a nodeSelector for the AWX pods. It must match a node's labels for the pod
 # to be scheduled on that node. Specify as literal block. E.g.:
@@ -106,7 +108,7 @@ extra_volumes: ''
 # Use these image versions for Ansible AWX.
 
 image: quay.io/ansible/awx
-image_version: 19.3.0
+image_version: 19.4.0
 redis_image: docker.io/redis
 redis_image_version: latest
 postgres_image: postgres
