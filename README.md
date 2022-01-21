@@ -44,8 +44,6 @@ An [Ansible AWX](https://github.com/ansible/awx) operator for Kubernetes built w
 
 This operator is meant to provide a more Kubernetes-native installation method for AWX via an AWX Custom Resource Definition (CRD).
 
-> :warning: The operator is not supported by Red Hat, and is in **alpha** status. For now, use it at your own risk!
-
 ## Usage
 
 ### Basic Install
@@ -422,6 +420,9 @@ spec:
     limits:
       storage: 50Gi
   postgres_storage_class: fast-ssd
+  postgres_extra_args:
+    - '-c'
+    - 'max_connections=1000'
 ```
 
 **Note**: If `postgres_storage_class` is not defined, Postgres will store it's data on a volume using the default storage class for your cluster.
@@ -537,16 +538,18 @@ spec:
 You can constrain the AWX pods created by the operator to run on a certain subset of nodes. `node_selector` and `postgres_selector` constrains
 the AWX pods to run only on the nodes that match all the specified key/value pairs. `tolerations` and `postgres_tolerations` allow the AWX
 pods to be scheduled onto nodes with matching taints.
+The ability to specify topologySpreadConstraints is also allowed through `topology_spread_constraints`  
 
 
-| Name                           | Description                 | Default |
-| -------------------------------| --------------------------- | ------- |
-| postgres_image                 | Path of the image to pull   | 12      |
-| postgres_image_version         | Image version to pull       | 12      |
-| node_selector                  | AWX pods' nodeSelector      | ''      |
-| tolerations                    | AWX pods' tolerations       | ''      |
-| postgres_selector              | Postgres pods' nodeSelector | ''      |
-| postgres_tolerations           | Postgres pods' tolerations  | ''      |
+| Name                           | Description                              | Default |
+| -------------------------------| ---------------------------------------- | ------- |
+| postgres_image                 | Path of the image to pull                | 12      |
+| postgres_image_version         | Image version to pull                    | 12      |
+| node_selector                  | AWX pods' nodeSelector                   | ''      |
+| topology_spread_constraints    | AWX pods' topologySpreadConstraints      | ''      |
+| tolerations                    | AWX pods' tolerations                    | ''      |
+| postgres_selector              | Postgres pods' nodeSelector              | ''      |
+| postgres_tolerations           | Postgres pods' tolerations               | ''      |
 
 Example of customization could be:
 
@@ -558,6 +561,13 @@ spec:
     disktype: ssd
     kubernetes.io/arch: amd64
     kubernetes.io/os: linux
+  topology_spread_constraints: |
+    - maxSkew: 100
+      topologyKey: "topology.kubernetes.io/zone"
+      whenUnsatisfiable: "ScheduleAnyway"
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/name: "<resourcename>"
   tolerations: |
     - key: "dedicated"
       operator: "Equal"
