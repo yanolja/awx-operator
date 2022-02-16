@@ -11,7 +11,8 @@ An [Ansible AWX](https://github.com/ansible/awx) operator for Kubernetes built w
 * [Table of Contents](#table-of-contents)
    * [Purpose](#purpose)
    * [Usage](#usage)
-      * [Basic Install](#basic-install)
+      * [Basic Install on minikube (beginner or testing)](#basic-install-on-minikube-beginner-or-testing)
+      * [Basic Install on existing cluster](#basic-install-on-existing-cluster)
       * [Admin user account configuration](#admin-user-account-configuration)
       * [Network and TLS Configuration](#network-and-tls-configuration)
          * [Service Type](#service-type)
@@ -22,21 +23,22 @@ An [Ansible AWX](https://github.com/ansible/awx) operator for Kubernetes built w
          * [Managed PostgreSQL Service](#managed-postgresql-service)
       * [Advanced Configuration](#advanced-configuration)
          * [Deploying a specific version of AWX](#deploying-a-specific-version-of-awx)
+         * [Redis container capabilities](#redis-container-capabilities)
          * [Privileged Tasks](#privileged-tasks)
          * [Containers Resource Requirements](#containers-resource-requirements)
+         * [Assigning AWX pods to specific nodes](#assigning-awx-pods-to-specific-nodes)
          * [Trusting a Custom Certificate Authority](#trusting-a-custom-certificate-authority)
          * [Persisting Projects Directory](#persisting-projects-directory)
          * [Custom Volume and Volume Mount Options](#custom-volume-and-volume-mount-options)
+         * [Default execution environments from private registries](#default-execution-environments-from-private-registries)
          * [Exporting Environment Variables to Containers](#exporting-environment-variables-to-containers)
          * [Extra Settings](#extra-settings)
          * [Service Account](#service-account)
       * [Uninstall](#uninstall)
-   * [Upgrading](#upgrading)
+      * [Upgrading](#upgrading)
+         * [v0.14.0](#v0140)
    * [Contributing](#contributing)
    * [Release Process](#release-process)
-      * [Verifiy Functionality](#verify-functionality)
-      * [Update Version](#update-version)
-      * [Commit / Create Release](#commit--create-release)
    * [Author](#author)
 <!--te-->
 
@@ -46,7 +48,7 @@ This operator is meant to provide a more Kubernetes-native installation method f
 
 ## Usage
 
-### Basic Install
+### Basic Install on minikube (beginner or testing)
 
 This Kubernetes Operator is meant to be deployed in your Kubernetes cluster(s) and can manage one or more AWX instances in any namespace.
 
@@ -197,6 +199,21 @@ For an example using the Nginx Controller in Minukube, don't miss our [demo vide
 
 [![asciicast](https://raw.githubusercontent.com/ansible/awx-operator/devel/docs/awx-demo.svg)](https://asciinema.org/a/416946)
 
+### Basic Install on existing cluster
+
+For those running a whole K8S Cluster the steps to set up the awx-operator are:
+
+```
+$ Prepare required files
+git clone https://github.com/ansible/awx-operator.git
+cd awx-operator
+git checkout {{ latest_released_version }} # replace variable by latest version number in releases
+
+$ Deploy new AWX Operator
+export NAMESPACE=<Name of the namespace where your AWX instanse exists>
+make deploy
+```
+
 ### Admin user account configuration
 
 There are three variables that are customizable for the admin user account creation.
@@ -241,12 +258,15 @@ The following variables are customizable for any `service_type`
 | Name                                  | Description                                   | Default                           |
 | ------------------------------------- | --------------------------------------------- | --------------------------------- |
 | service_labels                  | Add custom labels                             | Empty string                      |
+| service_annotations             | Add service annotations                 | Empty string  |
 
 ```yaml
 ---
 spec:
   ...
   service_type: ClusterIP
+  service_annotations: |
+    environment: testing
   service_labels: |
     environment: testing
 ```
@@ -257,7 +277,6 @@ The following variables are customizable only when `service_type=LoadBalancer`
 
 | Name                           | Description                              | Default       |
 | ------------------------------ | ---------------------------------------- | ------------- |
-| loadbalancer_annotations | LoadBalancer annotations                 | Empty string  |
 | loadbalancer_protocol    | Protocol to use for Loadbalancer ingress | http          |
 | loadbalancer_port        | Port used for Loadbalancer ingress       | 80            |
 
@@ -268,7 +287,7 @@ spec:
   service_type: LoadBalancer
   loadbalancer_protocol: https
   loadbalancer_port: 443
-  loadbalancer_annotations: |
+  service_annotations: |
     environment: testing
   service_labels: |
     environment: testing
@@ -858,6 +877,21 @@ delete your existing `awx-operator` service account, role and role binding.
 ##### Project is now based on v1.x of the operator-sdk project
 
 Starting with awx-operator 0.14.0, the project is now based on operator-sdk 1.x. You may need to manually delete your old operator Deployment to avoid issues.
+
+##### Steps to upgrade
+
+Delete your old AWX Operator and existing `awx-operator` service account, role and role binding in `default` namespace first:
+
+```
+$ kubectl -n default delete deployment awx-operator
+$ kubectl -n default delete serviceaccount awx-operator
+$ kubectl -n default delete clusterrolebinding awx-operator
+$ kubectl -n default delete clusterrole awx-operator
+```
+
+Then install the new AWX Operator by following the instructions in [Basic Install](#basic-install-on-existing-cluster). The `NAMESPACE` environment variable have to be the name of the namespace in which your old AWX instance resides.
+
+Once the new AWX Operator is up and running, your AWX deployment will also be upgraded.
 
 ## Contributing
 
