@@ -140,6 +140,9 @@ spec:
                 service_labels:
                   description: Additional labels to apply to the service
                   type: string
+                annotations:
+                  description: annotations for the pods
+                  type: string
                 tolerations:
                   description: node tolerations for the pods
                   type: string
@@ -225,6 +228,28 @@ spec:
                   type: object
                 ee_resource_requirements:
                   description: Resource requirements for the ee container
+                  properties:
+                    requests:
+                      properties:
+                        cpu:
+                          type: string
+                        memory:
+                          type: string
+                        storage:
+                          type: string
+                      type: object
+                    limits:
+                      properties:
+                        cpu:
+                          type: string
+                        memory:
+                          type: string
+                        storage:
+                          type: string
+                      type: object
+                  type: object
+                postgres_init_container_resource_requirements:
+                  description: Resource requirements for the postgres init container
                   properties:
                     requests:
                       properties:

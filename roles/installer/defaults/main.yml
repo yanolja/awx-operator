@@ -83,6 +83,12 @@ topology_spread_constraints: ''
 #     effect: "NoSchedule"
 tolerations: ''
 
+# Add annotations to awx pods. Specify as literal block. E.g.:
+# annotations: |
+#   my.annotation/1: value
+#   my.annotation/2: value2
+annotations: ''
+
 admin_user: admin
 admin_email: test@example.com
 
@@ -216,6 +222,7 @@ postgres_tolerations: ''
 postgres_storage_requirements:
   requests:
     storage: 8Gi
+postgres_init_container_resource_requirements: {}
 postgres_resource_requirements: {}
 postgres_data_path: '/var/lib/postgresql/data/pgdata'
 

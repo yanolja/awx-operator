@@ -106,23 +106,22 @@ Now you need to deploy AWX Operator into your cluster. Clone this repo and `git 
 ```
 $ export NAMESPACE=my-namespace
 $ make deploy
-cd config/manager && /home/user/awx-operator/bin/kustomize edit set image controller=quay.io/ansible/awx-operator:0.14.0
-/home/user/awx-operator/bin/kustomize build config/default | kubectl apply -f -
-namespace/my-namespace created
-customresourcedefinition.apiextensions.k8s.io/awxbackups.awx.ansible.com created
-customresourcedefinition.apiextensions.k8s.io/awxrestores.awx.ansible.com created
-customresourcedefinition.apiextensions.k8s.io/awxs.awx.ansible.com created
-serviceaccount/awx-operator-controller-manager created
-role.rbac.authorization.k8s.io/awx-operator-leader-election-role created
-role.rbac.authorization.k8s.io/awx-operator-manager-role created
-clusterrole.rbac.authorization.k8s.io/awx-operator-metrics-reader created
-clusterrole.rbac.authorization.k8s.io/awx-operator-proxy-role created
-rolebinding.rbac.authorization.k8s.io/awx-operator-leader-election-rolebinding created
-rolebinding.rbac.authorization.k8s.io/awx-operator-manager-rolebinding created
-clusterrolebinding.rbac.authorization.k8s.io/awx-operator-proxy-rolebinding created
-configmap/awx-operator-manager-config created
-service/awx-operator-controller-manager-metrics-service created
-deployment.apps/awx-operator-controller-manager created
+  /home/user/awx-operator/bin/kustomize build config/default | kubectl apply -f -
+  namespace/my-namespace created
+  customresourcedefinition.apiextensions.k8s.io/awxbackups.awx.ansible.com created
+  customresourcedefinition.apiextensions.k8s.io/awxrestores.awx.ansible.com created
+  customresourcedefinition.apiextensions.k8s.io/awxs.awx.ansible.com created
+  serviceaccount/awx-operator-controller-manager created
+  role.rbac.authorization.k8s.io/awx-operator-leader-election-role created
+  role.rbac.authorization.k8s.io/awx-operator-manager-role created
+  clusterrole.rbac.authorization.k8s.io/awx-operator-metrics-reader created
+  clusterrole.rbac.authorization.k8s.io/awx-operator-proxy-role created
+  rolebinding.rbac.authorization.k8s.io/awx-operator-leader-election-rolebinding created
+  rolebinding.rbac.authorization.k8s.io/awx-operator-manager-rolebinding created
+  clusterrolebinding.rbac.authorization.k8s.io/awx-operator-proxy-rolebinding created
+  configmap/awx-operator-manager-config created
+  service/awx-operator-controller-manager-metrics-service created
+  deployment.apps/awx-operator-controller-manager created
 ```
 
 Wait a bit and you should have the `awx-operator` running:
@@ -138,6 +137,8 @@ So we don't have to keep repeating `-n $NAMESPACE`, let's set the current namesp
 ```
 $ kubectl config set-context --current --namespace=$NAMESPACE
 ```
+
+It is important to know that when you do not set the default namespace to $NAMESPACE that the `awx-operator-controller-manager` might get confused.
 
 Next, create a file named `awx-demo.yml` with the suggested content below. The `metadata.name` you provide, will be the name of the resulting AWX deployment.
 
@@ -157,6 +158,12 @@ Finally, use `kubectl` to create the awx instance in your cluster:
 
 ```
 $ kubectl apply -f awx-demo.yml
+awx.awx.ansible.com/awx-demo created
+```
+Or, when you haven't set a default namespace
+
+```
+$ kubectl apply -f awx-demo.yml --namespace=$NAMESPACE
 awx.awx.ansible.com/awx-demo created
 ```
 
@@ -218,11 +225,11 @@ make deploy
 
 There are three variables that are customizable for the admin user account creation.
 
-| Name                        | Description                                  | Default          |
-| --------------------------- | -------------------------------------------- | ---------------- |
-| admin_user                  | Name of the admin user                       | admin            |
-| admin_email                 | Email of the admin user                      | test@example.com |
-| admin_password_secret       | Secret that contains the admin user password | Empty string     |
+| Name                  | Description                                  | Default          |
+| --------------------- | -------------------------------------------- | ---------------- |
+| admin_user            | Name of the admin user                       | admin            |
+| admin_email           | Email of the admin user                      | test@example.com |
+| admin_password_secret | Secret that contains the admin user password | Empty string     |
 
 
 > :warning: **admin_password_secret must be a Kubernetes secret and not your text clear password**.
@@ -255,10 +262,10 @@ The `service_type` supported options are: `ClusterIP`, `LoadBalancer` and `NodeP
 
 The following variables are customizable for any `service_type`
 
-| Name                                  | Description                                   | Default                           |
-| ------------------------------------- | --------------------------------------------- | --------------------------------- |
-| service_labels                  | Add custom labels                             | Empty string                      |
-| service_annotations             | Add service annotations                 | Empty string  |
+| Name                | Description             | Default      |
+| ------------------- | ----------------------- | ------------ |
+| service_labels      | Add custom labels       | Empty string |
+| service_annotations | Add service annotations | Empty string |
 
 ```yaml
 ---
@@ -275,10 +282,10 @@ spec:
 
 The following variables are customizable only when `service_type=LoadBalancer`
 
-| Name                           | Description                              | Default       |
-| ------------------------------ | ---------------------------------------- | ------------- |
-| loadbalancer_protocol    | Protocol to use for Loadbalancer ingress | http          |
-| loadbalancer_port        | Port used for Loadbalancer ingress       | 80            |
+| Name                  | Description                              | Default |
+| --------------------- | ---------------------------------------- | ------- |
+| loadbalancer_protocol | Protocol to use for Loadbalancer ingress | http    |
+| loadbalancer_port     | Port used for Loadbalancer ingress       | 80      |
 
 ```yaml
 ---
@@ -301,9 +308,9 @@ The HTTPS Load Balancer also uses SSL termination at the Load Balancer level and
 
 The following variables are customizable only when `service_type=NodePort`
 
-| Name                           | Description                              | Default       |
-| ------------------------------ | ---------------------------------------- | ------------- |
-| nodeport_port            | Port used for NodePort       | 30080            |
+| Name          | Description            | Default |
+| ------------- | ---------------------- | ------- |
+| nodeport_port | Port used for NodePort | 30080   |
 
 ```yaml
 ---
@@ -331,13 +338,13 @@ spec:
 
 The following variables are customizable when `ingress_type=ingress`. The `ingress` type creates an Ingress resource as [documented](https://kubernetes.io/docs/concepts/services-networking/ingress/) which can be shared with many other Ingress Controllers as [listed](https://kubernetes.io/docs/concepts/services-networking/ingress-controllers/).
 
-| Name                       | Description                              | Default                      |
-| -------------------------- | ---------------------------------------- | ---------------------------- |
-| ingress_annotations        | Ingress annotations                      | Empty string                 |
-| ingress_tls_secret         | Secret that contains the TLS information | Empty string                 |
-| hostname                   | Define the FQDN                          | {{ meta.name }}.example.com  |
-| ingress_path               | Define the ingress path to the service   | /                            |
-| ingress_path_type          | Define the type of the path (for LBs)    | Prefix                       |
+| Name                | Description                              | Default                     |
+| ------------------- | ---------------------------------------- | --------------------------- |
+| ingress_annotations | Ingress annotations                      | Empty string                |
+| ingress_tls_secret  | Secret that contains the TLS information | Empty string                |
+| hostname            | Define the FQDN                          | {{ meta.name }}.example.com |
+| ingress_path        | Define the ingress path to the service   | /                           |
+| ingress_path_type   | Define the type of the path (for LBs)    | Prefix                      |
 
 ```yaml
 ---
@@ -353,8 +360,8 @@ spec:
 
 The following variables are customizable when `ingress_type=route`
 
-| Name                                  | Description                                   | Default                                                 |
-| ------------------------------------- | --------------------------------------------- | --------------------------------------------------------|
+| Name                            | Description                                   | Default                                                 |
+| ------------------------------- | --------------------------------------------- | ------------------------------------------------------- |
 | route_host                      | Common name the route answers for             | `<instance-name>-<namespace>-<routerCanonicalHostname>` |
 | route_tls_termination_mechanism | TLS Termination mechanism (Edge, Passthrough) | Edge                                                    |
 | route_tls_secret                | Secret that contains the TLS information      | Empty string                                            |
@@ -412,13 +419,14 @@ If you don't have access to an external PostgreSQL service, the AWX operator can
 
 The following variables are customizable for the managed PostgreSQL service
 
-| Name                                 | Description                                | Default                           |
-| ------------------------------------ | ------------------------------------------ | --------------------------------- |
-| postgres_image                       | Path of the image to pull                  | postgres:12                       |
-| postgres_resource_requirements       | PostgreSQL container resource requirements | Empty object                      |
-| postgres_storage_requirements        | PostgreSQL container storage requirements  | requests: {storage: 8Gi}          |
-| postgres_storage_class               | PostgreSQL PV storage class                | Empty string                      |
-| postgres_data_path                   | PostgreSQL data path                       | `/var/lib/postgresql/data/pgdata` |
+| Name                                          | Description                                   | Default                           |
+| --------------------------------------------- | --------------------------------------------- | --------------------------------- |
+| postgres_image                                | Path of the image to pull                     | postgres:12                       |
+| postgres_init_container_resource_requirements | Database init container resource requirements | requests: {}                      |
+| postgres_resource_requirements                | PostgreSQL container resource requirements    | requests: {}                      |
+| postgres_storage_requirements                 | PostgreSQL container storage requirements     | requests: {storage: 8Gi}          |
+| postgres_storage_class                        | PostgreSQL PV storage class                   | Empty string                      |
+| postgres_data_path                            | PostgreSQL data path                          | `/var/lib/postgresql/data/pgdata` |
 
 Example of customization could be:
 
@@ -452,15 +460,15 @@ spec:
 
 There are a few variables that are customizable for awx the image management.
 
-| Name                      | Description                |
-| --------------------------| -------------------------- |
-| image                     | Path of the image to pull  |
-| image_version             | Image version to pull      |
-| image_pull_policy         | The pull policy to adopt   |
-| image_pull_secret         | The pull secret to use     |
-| ee_images                 | A list of EEs to register  |
-| redis_image               | Path of the image to pull  |
-| redis_image_version       | Image version to pull      |
+| Name                | Description               |
+| ------------------- | ------------------------- |
+| image               | Path of the image to pull |
+| image_version       | Image version to pull     |
+| image_pull_policy   | The pull policy to adopt  |
+| image_pull_secret   | The pull secret to use    |
+| ee_images           | A list of EEs to register |
+| redis_image         | Path of the image to pull |
+| redis_image_version | Image version to pull     |
 
 Example of customization could be:
 
@@ -517,11 +525,11 @@ Again, this is the most relaxed SCC that is provided by OpenShift, so be sure to
 
 The resource requirements for both, the task and the web containers are configurable - both the lower end (requests) and the upper end (limits).
 
-| Name                             | Description                                      | Default                             |
-| -------------------------------- | ------------------------------------------------ | ----------------------------------- |
-| web_resource_requirements        | Web container resource requirements              | requests: {cpu: 1000m, memory: 2Gi} |
-| task_resource_requirements       | Task container resource requirements             | requests: {cpu: 500m, memory: 1Gi}  |
-| ee_resource_requirements         | EE control plane container resource requirements | requests: {cpu: 500m, memory: 1Gi}  |
+| Name                       | Description                                      | Default                             |
+| -------------------------- | ------------------------------------------------ | ----------------------------------- |
+| web_resource_requirements  | Web container resource requirements              | requests: {cpu: 1000m, memory: 2Gi} |
+| task_resource_requirements | Task container resource requirements             | requests: {cpu: 500m, memory: 1Gi}  |
+| ee_resource_requirements   | EE control plane container resource requirements | requests: {cpu: 500m, memory: 1Gi}  |
 
 Example of customization could be:
 
@@ -560,15 +568,16 @@ pods to be scheduled onto nodes with matching taints.
 The ability to specify topologySpreadConstraints is also allowed through `topology_spread_constraints`  
 
 
-| Name                           | Description                              | Default |
-| -------------------------------| ---------------------------------------- | ------- |
-| postgres_image                 | Path of the image to pull                | 12      |
-| postgres_image_version         | Image version to pull                    | 12      |
-| node_selector                  | AWX pods' nodeSelector                   | ''      |
-| topology_spread_constraints    | AWX pods' topologySpreadConstraints      | ''      |
-| tolerations                    | AWX pods' tolerations                    | ''      |
-| postgres_selector              | Postgres pods' nodeSelector              | ''      |
-| postgres_tolerations           | Postgres pods' tolerations               | ''      |
+| Name                        | Description                         | Default |
+| --------------------------- | ----------------------------------- | ------- |
+| postgres_image              | Path of the image to pull           | 12      |
+| postgres_image_version      | Image version to pull               | 12      |
+| node_selector               | AWX pods' nodeSelector              | ''      |
+| topology_spread_constraints | AWX pods' topologySpreadConstraints | ''      |
+| tolerations                 | AWX pods' tolerations               | ''      |
+| annotations                 | AWX pods' annotations               | ''      |
+| postgres_selector           | Postgres pods' nodeSelector         | ''      |
+| postgres_tolerations        | Postgres pods' tolerations          | ''      |
 
 Example of customization could be:
 
@@ -610,10 +619,10 @@ In cases which you need to trust a custom Certificate Authority, there are few v
 Trusting a custom Certificate Authority allows the AWX to access network services configured with SSL certificates issued locally, such as cloning a project from from an internal Git server via HTTPS. It is common for these scenarios, experiencing the error [unable to verify the first certificate](https://github.com/ansible/awx-operator/issues/376).
 
 
-| Name                             | Description                              | Default |
-| -------------------------------- | ---------------------------------------- | --------|
-| ldap_cacert_secret               | LDAP Certificate Authority secret name   |  ''     |
-| bundle_cacert_secret             | Certificate Authority secret name        |  ''     |
+| Name                 | Description                            | Default |
+| -------------------- | -------------------------------------- | ------- |
+| ldap_cacert_secret   | LDAP Certificate Authority secret name | ''      |
+| bundle_cacert_secret | Certificate Authority secret name      | ''      |
 
 Please note the `awx-operator` will look for the data field `ldap-ca.crt` in the specified secret when using the `ldap_cacert_secret`, whereas the data field `bundle-ca.crt` is required for `bundle_cacert_secret` parameter.
 
@@ -639,13 +648,13 @@ To create the secret, you can use the command below:
 
 In cases which you want to persist the `/var/lib/projects` directory, there are few variables that are customizable for the `awx-operator`.
 
-| Name                               | Description                                                                                          | Default        |
-| -----------------------------------| ---------------------------------------------------------------------------------------------------- | ---------------|
-| projects_persistence         | Whether or not the /var/lib/projects directory will be persistent                                    |  false         |
-| projects_storage_class       | Define the PersistentVolume storage class                                                            |  ''            |
-| projects_storage_size        | Define the PersistentVolume size                                                                     |  8Gi           |
-| projects_storage_access_mode | Define the PersistentVolume access mode                                                              |  ReadWriteMany |
-| projects_existing_claim      | Define an existing PersistentVolumeClaim to use (cannot be combined with `projects_storage_*`) |  ''            |
+| Name                         | Description                                                                                    | Default       |
+| ---------------------------- | ---------------------------------------------------------------------------------------------- | ------------- |
+| projects_persistence         | Whether or not the /var/lib/projects directory will be persistent                              | false         |
+| projects_storage_class       | Define the PersistentVolume storage class                                                      | ''            |
+| projects_storage_size        | Define the PersistentVolume size                                                               | 8Gi           |
+| projects_storage_access_mode | Define the PersistentVolume access mode                                                        | ReadWriteMany |
+| projects_existing_claim      | Define an existing PersistentVolumeClaim to use (cannot be combined with `projects_storage_*`) | ''            |
 
 Example of customization when the `awx-operator` automatically handles the persistent volume could be:
 
@@ -662,14 +671,14 @@ spec:
 
 In a scenario where custom volumes and volume mounts are required to either overwrite defaults or mount configuration files.
 
-| Name                              | Description                                              | Default |
-| --------------------------------- | -------------------------------------------------------- | ------- |
-| extra_volumes                     | Specify extra volumes to add to the application pod      | ''      |
-| web_extra_volume_mounts           | Specify volume mounts to be added to Web container       | ''      |
-| task_extra_volume_mounts          | Specify volume mounts to be added to Task container      | ''      |
-| ee_extra_volume_mounts            | Specify volume mounts to be added to Execution container | ''      |
-| init_container_extra_volume_mounts| Specify volume mounts to be added to Init container      | ''      |
-| init_container_extra_commands     | Specify additional commands for Init container           | ''      |
+| Name                               | Description                                              | Default |
+| ---------------------------------- | -------------------------------------------------------- | ------- |
+| extra_volumes                      | Specify extra volumes to add to the application pod      | ''      |
+| web_extra_volume_mounts            | Specify volume mounts to be added to Web container       | ''      |
+| task_extra_volume_mounts           | Specify volume mounts to be added to Task container      | ''      |
+| ee_extra_volume_mounts             | Specify volume mounts to be added to Execution container | ''      |
+| init_container_extra_volume_mounts | Specify volume mounts to be added to Init container      | ''      |
+| init_container_extra_commands      | Specify additional commands for Init container           | ''      |
 
 
 > :warning: The `ee_extra_volume_mounts` and `extra_volumes` will only take effect to the globally available Execution Environments. For custom `ee`, please [customize the Pod spec](https://docs.ansible.com/ansible-tower/latest/html/administration/external_execution_envs.html#customize-the-pod-spec).
@@ -790,11 +799,11 @@ type: kubernetes.io/dockerconfigjson
 
 If you need to export custom environment variables to your containers.
 
-| Name                          | Description                                              | Default |
-| ----------------------------- | -------------------------------------------------------- | ------- |
-| task_extra_env                | Environment variables to be added to Task container      | ''      |
-| web_extra_env                 | Environment variables to be added to Web container       | ''      |
-| ee_extra_env                  | Environment variables to be added to EE container        | ''      |
+| Name           | Description                                         | Default |
+| -------------- | --------------------------------------------------- | ------- |
+| task_extra_env | Environment variables to be added to Task container | ''      |
+| web_extra_env  | Environment variables to be added to Web container  | ''      |
+| ee_extra_env   | Environment variables to be added to EE container   | ''      |
 
 > :warning: The `ee_extra_env` will only take effect to the globally available Execution Environments. For custom `ee`, please [customize the Pod spec](https://docs.ansible.com/ansible-tower/latest/html/administration/external_execution_envs.html#customize-the-pod-spec).
 
@@ -817,9 +826,9 @@ Example configuration of environment variables
 
 With`extra_settings`, you can pass multiple custom settings via the `awx-operator`. The parameter `extra_settings`  will be appended to the `/etc/tower/settings.py` and can be an alternative to the `extra_volumes` parameter.
 
-| Name                          | Description                                              | Default |
-| ----------------------------- | -------------------------------------------------------- | ------- |
-| extra_settings                | Extra settings                                           | ''      |
+| Name           | Description    | Default |
+| -------------- | -------------- | ------- |
+| extra_settings | Extra settings | ''      |
 
 Example configuration of `extra_settings` parameter
 
@@ -837,9 +846,9 @@ Example configuration of `extra_settings` parameter
 
 If you need to modify some `ServiceAccount` proprieties
 
-| Name                          | Description                                              | Default |
-| ----------------------------- | -------------------------------------------------------- | ------- |
-| service_account_annotations   | Annotations to the ServiceAccount                        | ''      |
+| Name                        | Description                       | Default |
+| --------------------------- | --------------------------------- | ------- |
+| service_account_annotations | Annotations to the ServiceAccount | ''      |
 
 Example configuration of environment variables
 
