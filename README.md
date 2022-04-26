@@ -8,43 +8,46 @@ An [Ansible AWX](https://github.com/ansible/awx) operator for Kubernetes built w
 <!-- Regenerate this table of contents using https://github.com/ekalinin/github-markdown-toc -->
 <!-- gh-md-toc --insert README.md -->
 <!--ts-->
-* [AWX Operator](#awx-operator)
-* [Table of Contents](#table-of-contents)
-   * [Purpose](#purpose)
-   * [Usage](#usage)
-      * [Creating a minikube cluster for testing](#creating-a-minikube-cluster-for-testing)
-      * [Basic Install](#basic-install)
-      * [Admin user account configuration](#admin-user-account-configuration)
-      * [Network and TLS Configuration](#network-and-tls-configuration)
-         * [Service Type](#service-type)
-         * [Ingress Type](#ingress-type)
-      * [Database Configuration](#database-configuration)
-         * [External PostgreSQL Service](#external-postgresql-service)
-         * [Migrating data from an old AWX instance](#migrating-data-from-an-old-awx-instance)
-         * [Managed PostgreSQL Service](#managed-postgresql-service)
-      * [Advanced Configuration](#advanced-configuration)
-         * [Deploying a specific version of AWX](#deploying-a-specific-version-of-awx)
-         * [Redis container capabilities](#redis-container-capabilities)
-         * [Privileged Tasks](#privileged-tasks)
-         * [Containers Resource Requirements](#containers-resource-requirements)
-         * [Assigning AWX pods to specific nodes](#assigning-awx-pods-to-specific-nodes)
-         * [Trusting a Custom Certificate Authority](#trusting-a-custom-certificate-authority)
-         * [Persisting Projects Directory](#persisting-projects-directory)
-         * [Custom Volume and Volume Mount Options](#custom-volume-and-volume-mount-options)
-         * [Default execution environments from private registries](#default-execution-environments-from-private-registries)
-            * [Control plane ee from private registry](#control-plane-ee-from-private-registry)
-         * [Exporting Environment Variables to Containers](#exporting-environment-variables-to-containers)
-         * [Extra Settings](#extra-settings)
-         * [Service Account](#service-account)
-      * [Uninstall](#uninstall)
-      * [Upgrading](#upgrading)
-         * [v0.14.0](#v0140)
-            * [Cluster-scope to Namespace-scope considerations](#cluster-scope-to-namespace-scope-considerations)
-            * [Project is now based on v1.x of the operator-sdk project](#project-is-now-based-on-v1x-of-the-operator-sdk-project)
-            * [Steps to upgrade](#steps-to-upgrade)
-   * [Contributing](#contributing)
-   * [Release Process](#release-process)
-   * [Author](#author)
+- [AWX Operator](#awx-operator)
+- [Table of Contents](#table-of-contents)
+  - [Purpose](#purpose)
+  - [Usage](#usage)
+    - [Creating a minikube cluster for testing](#creating-a-minikube-cluster-for-testing)
+    - [Basic Install](#basic-install)
+    - [Admin user account configuration](#admin-user-account-configuration)
+    - [Network and TLS Configuration](#network-and-tls-configuration)
+      - [Service Type](#service-type)
+      - [Ingress Type](#ingress-type)
+    - [Database Configuration](#database-configuration)
+      - [External PostgreSQL Service](#external-postgresql-service)
+      - [Migrating data from an old AWX instance](#migrating-data-from-an-old-awx-instance)
+      - [Managed PostgreSQL Service](#managed-postgresql-service)
+    - [Advanced Configuration](#advanced-configuration)
+      - [Deploying a specific version of AWX](#deploying-a-specific-version-of-awx)
+      - [Redis container capabilities](#redis-container-capabilities)
+      - [Privileged Tasks](#privileged-tasks)
+      - [Containers Resource Requirements](#containers-resource-requirements)
+      - [Assigning AWX pods to specific nodes](#assigning-awx-pods-to-specific-nodes)
+      - [Trusting a Custom Certificate Authority](#trusting-a-custom-certificate-authority)
+      - [Enabling LDAP Integration at AWX bootstrap](#enabling-ldap-integration-at-awx-bootstrap)
+      - [Persisting Projects Directory](#persisting-projects-directory)
+      - [Custom Volume and Volume Mount Options](#custom-volume-and-volume-mount-options)
+      - [Default execution environments from private registries](#default-execution-environments-from-private-registries)
+        - [Control plane ee from private registry](#control-plane-ee-from-private-registry)
+      - [Exporting Environment Variables to Containers](#exporting-environment-variables-to-containers)
+      - [Extra Settings](#extra-settings)
+      - [Service Account](#service-account)
+    - [Uninstall](#uninstall)
+    - [Upgrading](#upgrading)
+      - [v0.14.0](#v0140)
+        - [Cluster-scope to Namespace-scope considerations](#cluster-scope-to-namespace-scope-considerations)
+        - [Project is now based on v1.x of the operator-sdk project](#project-is-now-based-on-v1x-of-the-operator-sdk-project)
+        - [Steps to upgrade](#steps-to-upgrade)
+  - [Contributing](#contributing)
+  - [Release Process](#release-process)
+  - [Author](#author)
+
+<!-- Created by https://github.com/ekalinin/github-markdown-toc -->
 <!--te-->
 
 ## Purpose
@@ -134,7 +137,7 @@ Install the manifests by running this:
 
 ```
 $ kustomize build . | kubectl apply -f -
-namespace/machaffe created
+namespace/awx created
 customresourcedefinition.apiextensions.k8s.io/awxbackups.awx.ansible.com created
 customresourcedefinition.apiextensions.k8s.io/awxrestores.awx.ansible.com created
 customresourcedefinition.apiextensions.k8s.io/awxs.awx.ansible.com created
@@ -232,8 +235,6 @@ yDL2Cx5Za94g9MvBP6B73nzVLlmfgPjR
 You just completed the most basic install of an AWX instance via this operator. Congratulations!!!
 
 For an example using the Nginx Controller in Minukube, don't miss our [demo video](https://asciinema.org/a/416946).
-
-[![asciicast](https://raw.githubusercontent.com/ansible/awx-operator/devel/docs/awx-demo.svg)](https://asciinema.org/a/416946)
 
 
 ### Admin user account configuration
@@ -434,14 +435,15 @@ If you don't have access to an external PostgreSQL service, the AWX operator can
 
 The following variables are customizable for the managed PostgreSQL service
 
-| Name                                          | Description                                   | Default                           |
-| --------------------------------------------- | --------------------------------------------- | --------------------------------- |
-| postgres_image                                | Path of the image to pull                     | postgres:12                       |
-| postgres_init_container_resource_requirements | Database init container resource requirements | requests: {}                      |
-| postgres_resource_requirements                | PostgreSQL container resource requirements    | requests: {}                      |
-| postgres_storage_requirements                 | PostgreSQL container storage requirements     | requests: {storage: 8Gi}          |
-| postgres_storage_class                        | PostgreSQL PV storage class                   | Empty string                      |
-| postgres_data_path                            | PostgreSQL data path                          | `/var/lib/postgresql/data/pgdata` |
+| Name                                          | Description                                   | Default                            |
+| --------------------------------------------- | --------------------------------------------- | ---------------------------------- |
+| postgres_image                                | Path of the image to pull                     | postgres:12                        |
+| postgres_init_container_resource_requirements | Database init container resource requirements | requests: {cpu: 10m, memory: 64Mi} |
+| postgres_resource_requirements                | PostgreSQL container resource requirements    | requests: {cpu: 10m, memory: 64Mi} |
+| postgres_storage_requirements                 | PostgreSQL container storage requirements     | requests: {storage: 8Gi}           |
+| postgres_storage_class                        | PostgreSQL PV storage class                   | Empty string                       |
+| postgres_data_path                            | PostgreSQL data path                          | `/var/lib/postgresql/data/pgdata`  |
+| postgres_priority_class                       | Priority class used for PostgreSQL pod        | Empty string                       |
 
 Example of customization could be:
 
@@ -480,7 +482,7 @@ There are a few variables that are customizable for awx the image management.
 | image               | Path of the image to pull |
 | image_version       | Image version to pull     |
 | image_pull_policy   | The pull policy to adopt  |
-| image_pull_secret   | The pull secret to use    |
+| image_pull_secrets  | The pull secrets to use   |
 | ee_images           | A list of EEs to register |
 | redis_image         | Path of the image to pull |
 | redis_image_version | Image version to pull     |
@@ -494,7 +496,8 @@ spec:
   image: myorg/my-custom-awx
   image_version: latest
   image_pull_policy: Always
-  image_pull_secret: pull_secret_name
+  image_pull_secrets:
+    - pull_secret_name
   ee_images:
     - name: my-custom-awx-ee
       image: myorg/my-custom-awx-ee
@@ -540,11 +543,11 @@ Again, this is the most relaxed SCC that is provided by OpenShift, so be sure to
 
 The resource requirements for both, the task and the web containers are configurable - both the lower end (requests) and the upper end (limits).
 
-| Name                       | Description                                      | Default                             |
-| -------------------------- | ------------------------------------------------ | ----------------------------------- |
-| web_resource_requirements  | Web container resource requirements              | requests: {cpu: 1000m, memory: 2Gi} |
-| task_resource_requirements | Task container resource requirements             | requests: {cpu: 500m, memory: 1Gi}  |
-| ee_resource_requirements   | EE control plane container resource requirements | requests: {cpu: 500m, memory: 1Gi}  |
+| Name                       | Description                                      | Default                              |
+| -------------------------- | ------------------------------------------------ | ------------------------------------ |
+| web_resource_requirements  | Web container resource requirements              | requests: {cpu: 100m, memory: 128Mi} |
+| task_resource_requirements | Task container resource requirements             | requests: {cpu: 100m, memory: 128Mi} |
+| ee_resource_requirements   | EE control plane container resource requirements | requests: {cpu: 100m, memory: 128Mi} |
 
 Example of customization could be:
 
@@ -554,25 +557,43 @@ spec:
   ...
   web_resource_requirements:
     requests:
-      cpu: 1000m
+      cpu: 250m
       memory: 2Gi
     limits:
-      cpu: 2000m
+      cpu: 1000m
       memory: 4Gi
   task_resource_requirements:
     requests:
-      cpu: 500m
+      cpu: 250m
       memory: 1Gi
     limits:
-      cpu: 1000m
+      cpu: 2000m
       memory: 2Gi
   ee_resource_requirements:
     requests:
-      cpu: 500m
-      memory: 1Gi
+      cpu: 250m
+      memory: 100Mi
     limits:
-      cpu: 1000m
+      cpu: 500m
       memory: 2Gi
+```
+
+#### Priority Classes
+
+The AWX and Postgres pods can be assigned a custom PriorityClass to rank their importance compared to other pods in your cluster, which determines which pods get evicted first if resources are running low.
+First, [create your PriorityClass](https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass) if needed.
+Then set the name of your priority class to the control plane and postgres pods as shown below.  
+
+```yaml
+---
+apiVersion: awx.ansible.com/v1beta1
+kind: AWX
+metadata:
+  name: awx-demo
+spec:
+  ...
+  control_plane_priority_class: awx-demo-high-priority
+  postgres_priority_class: awx-demo-medium-priority
 ```
 
 #### Assigning AWX pods to specific nodes
@@ -634,11 +655,11 @@ In cases which you need to trust a custom Certificate Authority, there are few v
 Trusting a custom Certificate Authority allows the AWX to access network services configured with SSL certificates issued locally, such as cloning a project from from an internal Git server via HTTPS. It is common for these scenarios, experiencing the error [unable to verify the first certificate](https://github.com/ansible/awx-operator/issues/376).
 
 
-| Name                 | Description                            | Default |
-| -------------------- | -------------------------------------- | ------- |
-| ldap_cacert_secret   | LDAP Certificate Authority secret name | ''      |
-| bundle_cacert_secret | Certificate Authority secret name      | ''      |
-
+| Name                             | Description                              | Default |
+| -------------------------------- | ---------------------------------------- | --------|
+| ldap_cacert_secret               | LDAP Certificate Authority secret name   |  ''     |
+| ldap_password_secret             | LDAP BIND DN Password secret name        |  ''     |
+| bundle_cacert_secret             | Certificate Authority secret name        |  ''     |
 Please note the `awx-operator` will look for the data field `ldap-ca.crt` in the specified secret when using the `ldap_cacert_secret`, whereas the data field `bundle-ca.crt` is required for `bundle_cacert_secret` parameter.
 
 Example of customization could be:
@@ -648,15 +669,78 @@ Example of customization could be:
 spec:
   ...
   ldap_cacert_secret: <resourcename>-custom-certs
+  ldap_password_secret: <resourcename>-ldap-password
   bundle_cacert_secret: <resourcename>-custom-certs
 ```
 
-To create the secret, you can use the command below:
+To create the secrets, you can use the commands below:
+
+* Certificate Authority secret
 
 ```
 # kubectl create secret generic <resourcename>-custom-certs \
     --from-file=ldap-ca.crt=<PATH/TO/YOUR/CA/PEM/FILE>  \
     --from-file=bundle-ca.crt=<PATH/TO/YOUR/CA/PEM/FILE>
+```
+
+* LDAP BIND DN Password secret
+
+```
+# kubectl create secret generic <resourcename>-ldap-password \
+    --from-literal=ldap-password=<your_ldap_dn_password>
+```
+
+#### Enabling LDAP Integration at AWX bootstrap
+
+A sample of extra settings can be found as below:
+
+```yaml
+    - setting: AUTH_LDAP_SERVER_URI
+      value: >-
+        "ldaps://ad01.abc.com:636 ldaps://ad02.abc.com:636"
+
+    - setting: AUTH_LDAP_BIND_DN
+      value: >-
+        "CN=LDAP User,OU=Service Accounts,DC=abc,DC=com"
+
+    - setting: AUTH_LDAP_USER_SEARCH
+      value: 'LDAPSearch("DC=abc,DC=com",ldap.SCOPE_SUBTREE,"(sAMAccountName=%(user)s)",)'
+
+    - setting: AUTH_LDAP_GROUP_SEARCH
+      value: 'LDAPSearch("OU=Groups,DC=abc,DC=com",ldap.SCOPE_SUBTREE,"(objectClass=group)",)'
+
+    - setting: AUTH_LDAP_USER_ATTR_MAP
+      value: '{"first_name": "givenName","last_name": "sn","email": "mail"}'
+
+    - setting: AUTH_LDAP_REQUIRE_GROUP
+      value: >-
+        "CN=operators,OU=Groups,DC=abc,DC=com"
+    - setting: AUTH_LDAP_USER_FLAGS_BY_GROUP
+      value: {
+        "is_superuser": [
+          "CN=admin,OU=Groups,DC=abc,DC=com"
+        ]
+      }
+
+
+    - setting: AUTH_LDAP_ORGANIZATION_MAP
+      value: {
+        "abc": {
+          "admins": "CN=admin,OU=Groups,DC=abc,DC=com",
+          "remove_users": false,
+          "remove_admins": false,
+          "users": true
+        }
+      }
+
+    - setting: AUTH_LDAP_TEAM_MAP
+      value: {
+        "admin": {
+          "remove": true,
+          "users": "CN=admin,OU=Groups,DC=abc,DC=com",
+          "organization": "abc"
+        }
+      }
 ```
 
 #### Persisting Projects Directory
@@ -788,7 +872,7 @@ type: Opaque
 ```
 
 ##### Control plane ee from private registry
-The images listed in "ee_images" will be added as globally available Execution Environments. The "control_plane_ee_image" will be used to run project updates. In order to use a private image for any of these you'll need to use `image_pull_secret` to provide a k8s pull secret to access it. Currently the same secret is used for any of these images supplied at install time.
+The images listed in "ee_images" will be added as globally available Execution Environments. The "control_plane_ee_image" will be used to run project updates. In order to use a private image for any of these you'll need to use `image_pull_secrets` to provide a list of k8s pull secrets to access it. Currently the same secret is used for any of these images supplied at install time.
 
 You can create `image_pull_secret`
 ```
@@ -835,6 +919,36 @@ Example configuration of environment variables
     ee_extra_env: |
       - name: MYCUSTOMVAR
         value: foo
+```
+
+#### CSRF Cookie Secure Setting
+
+With `csrf_cookie_secure`, you can pass the value for `CSRF_COOKIE_SECURE` to `/etc/tower/settings.py`
+
+| Name               | Description        | Default |
+| ------------------ | ------------------ | ------- |
+| csrf_cookie_secure | CSRF Cookie Secure | ''      |
+
+Example configuration of the `csrf_cookie_secure` setting:
+
+```yaml
+  spec:
+    csrf_cookie_secure: 'False'
+```
+
+#### Session Cookie Secure Setting
+
+With `session_cookie_secure`, you can pass the value for `SESSION_COOKIE_SECURE` to `/etc/tower/settings.py`
+
+| Name                  | Description           | Default |
+| --------------------- | --------------------- | ------- |
+| session_cookie_secure | Session Cookie Secure | ''      |
+
+Example configuration of the `session_cookie_secure` setting:
+
+```yaml
+  spec:
+    session_cookie_secure: 'False'
 ```
 
 #### Extra Settings

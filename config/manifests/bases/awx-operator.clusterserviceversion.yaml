@@ -252,8 +252,8 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
-      - displayName: Image Pull Secret
-        path: image_pull_secret
+      - displayName: Image Pull Secrets
+        path: image_pull_secrets
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:io.kubernetes:Secret
@@ -551,6 +551,16 @@ spec:
         - urn:alm:descriptor:com.tectonic.ui:hidden
       - displayName: Tolerations
         path: tolerations
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+        - urn:alm:descriptor:com.tectonic.ui:hidden
+      - displayName: CSRF cookie secure setting
+        path: csrf_cookie_secure
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+        - urn:alm:descriptor:com.tectonic.ui:hidden
+      - displayName: Session cookie secure setting
+        path: session_cookie_secure
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:hidden
