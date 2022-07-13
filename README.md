@@ -45,6 +45,8 @@ An [Ansible AWX](https://github.com/ansible/awx) operator for Kubernetes built w
          * [Session Cookie Secure Setting](#session-cookie-secure-setting)
          * [Extra Settings](#extra-settings)
          * [Configure no_log](#no-log)
+         * [Auto Upgrade](#auto-upgrade)
+            * [Upgrade of instances without auto upgrade](#upgrade-of-instances-without-auto-upgrade)
          * [Service Account](#service-account)
       * [Uninstall](#uninstall)
       * [Upgrading](#upgrading)
@@ -192,7 +194,11 @@ metadata:
   name: awx-demo
 spec:
   service_type: nodeport
+  # default nodeport_port is 30080
+  nodeport_port: <nodeport_port>
 ```
+
+> It may make sense to create and specify your own secret key for your deployment so that if the k8s secret gets deleted, it can be re-created if needed.  If it is not provided, one will be auto-generated, but cannot be recovered if lost. Read more [here](#secret-key-configuration).
 
 Make sure to add this new file to the list of "resources" in your `kustomization.yaml` file:
 
@@ -253,6 +259,8 @@ For an example using the Nginx Controller in Minukube, don't miss our [demo vide
 
 For those that wish to use [Helm](https://helm.sh/) to install the awx-operator to an existing K8s cluster:
 
+The helm chart is generated from the `helm-chart` Makefile section using the starter files in `.helm/starter`. Consult [the documentation](.helm/starter/README.md) on how to customize the AWX resource with your own values.
+
 ```bash
 $ helm repo add awx-operator https://ansible.github.io/awx-operator/
 "awx-operator" has been added to your repositories
@@ -266,7 +274,7 @@ $ helm search repo awx-operator
 NAME                            CHART VERSION   APP VERSION     DESCRIPTION
 awx-operator/awx-operator       0.17.1          0.17.1          A Helm chart for the AWX Operator
 
-$ helm install my-awx-operator awx-operator/awx-operator
+$ helm install -n awx --create-namespace my-awx-operator awx-operator/awx-operator
 NAME: my-awx-operator
 LAST DEPLOYED: Thu Feb 17 22:09:05 2022
 NAMESPACE: default
@@ -307,6 +315,41 @@ stringData:
   password: mysuperlongpassword
 ```
 
+
+### Secret Key Configuration
+
+This key is used to encrypt sensitive data in the database.
+
+| Name              | Description                                           | Default          |
+| ----------------- | ----------------------------------------------------- | ---------------- |
+| secret_key_secret | Secret that contains the symmetric key for encryption | Generated     |
+
+
+> :warning: **secret_key_secret must be a Kubernetes secret and not your text clear secret value**.
+
+If `secret_key_secret` is not provided, the operator will look for a secret named `<resourcename>-secret-key` for the secret key. If it is not present, the operator will generate a password and create a Secret from it named `<resourcename>-secret-key`. It is important to not delete this secret as it will be needed for upgrades and if the pods get scaled down at any point. If you are using a GitOps flow, you will want to pass a secret key secret.
+
+The secret should be formatted as follow:
+
+```yaml
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: custom-awx-secret-key
+  namespace: <target namespace>
+stringData:
+  secret_key: supersecuresecretkey
+```
+
+Then specify the secret name on the AWX spec:
+
+```yaml
+---
+spec:
+  ...
+  secret_key_secret: custom-awx-secret-key
+```
 
 ### Network and TLS Configuration
 
@@ -1034,6 +1077,42 @@ Example configuration of `no_log` parameter
     no_log: 'true'
 ```
 
+#### Auto upgrade
+With this parameter you can influence the behaviour during an operator upgrade.  
+If set to `true`, the operator will upgrade the specific instance directly.  
+When the value is set to `false`, and we have a running deployment, the operator will not update the AWX instance.  
+This can be useful when you have multiple AWX instances which you want to upgrade step by step instead of all at once.  
+
+
+| Name         | Description                        | Default |
+| -------------| ---------------------------------- | ------- |
+| auto_upgrade | Automatic upgrade of AWX instances | true    |
+
+Example configuration of `auto_upgrade` parameter
+
+```yaml
+  spec:
+    auto_upgrade: true
+```
+
+##### Upgrade of instances without auto upgrade
+
+There are two ways to upgrade instances which are marked with the 'auto_upgrade: false' flag.  
+
+Changing flags:
+
+- change the auto_upgrade flag on your AWX object to true  
+- wait until the upgrade process of that instance is finished
+- change the auto_upgrade flag on your AWX object back to false  
+
+Delete the deployment:
+
+- delete the deployment object of your AWX instance  
+```
+$ kubectl -n awx delete deployment <yourInstanceName> 
+```
+- wait until the instance gets redeployed  
+
 
 #### Service Account
 
@@ -1125,4 +1204,3 @@ We welcome your feedback and ideas. The AWX operator uses the same mailing list 
 
 - Join the `#ansible-awx` channel on irc.libera.chat
 - Join the [mailing list](https://groups.google.com/forum/#!forum/awx-project)
-
