@@ -129,7 +129,7 @@ _image_version: "{{ lookup('env', 'DEFAULT_AWX_VERSION') or 'latest' }}"
 _redis_image: docker.io/redis
 _redis_image_version: 7
 _postgres_image: postgres
-_postgres_image_version: 12
+_postgres_image_version: 13
 _init_container_image: quay.io/centos/centos
 _init_container_image_version: stream8
 image_pull_policy: IfNotPresent
@@ -223,6 +223,9 @@ ee_extra_volume_mounts: ''
 #   kubernetes.io/os: linux
 postgres_selector: ''
 
+# Specify whether or not to keep the old PVC after PostgreSQL upgrades
+postgres_keep_pvc_after_upgrade: True
+
 # Add node tolerations for the Postgres pods.
 # Specify as literal block. E.g.:
 # postgres_tolerations: |
@@ -288,3 +291,6 @@ no_log: 'true'
 # Should AWX instances be automatically upgraded when operator gets upgraded
 #
 auto_upgrade: true
+
+# Maintain some of the recommended `app.kubernetes.io/*` labels on the resource (self)
+set_self_labels: true

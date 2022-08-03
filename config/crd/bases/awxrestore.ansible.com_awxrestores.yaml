@@ -33,7 +33,8 @@ spec:
                     - CR
                     - PVC
                 deployment_name:
-                  description: Name of the deployment to be restored to
+                  description: Name of the restored deployment. This should be different from the original deployment name
+                    if the original deployment still exists.
                   type: string
                 backup_name:
                   description: AWXBackup object name
@@ -42,7 +43,7 @@ spec:
                   description: Name of the PVC to be restored from, set as a status found on the awxbackup object (backupClaim)
                   type: string
                 backup_pvc_namespace:
-                  description: Namespace the PVC is in
+                  description: (Deprecated) Namespace the PVC is in
                   type: string
                 backup_dir:
                   description: Backup directory name, set as a status found on the awxbackup object (backupDirectory)
@@ -59,6 +60,10 @@ spec:
                 no_log:
                   description: Configure no_log for no_log tasks
                   type: string
+                set_self_labels:
+                  description: Maintain some of the recommended `app.kubernetes.io/*` labels on the resource (self)
+                  type: boolean
+                  default: true
             status:
               type: object
               properties:

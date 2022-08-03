@@ -32,13 +32,13 @@ spec:
                   description: Name of the deployment to be backed up
                   type: string
                 backup_pvc:
-                  description: Name of the PVC to be used for storing the backup
+                  description: Name of the backup PVC
                   type: string
                 backup_pvc_namespace:
-                  description: Namespace the PVC is in
+                  description: (Deprecated) Namespace the PVC is in
                   type: string
                 backup_storage_requirements:
-                  description: Storage requirements for the PostgreSQL container
+                  description: Storage requirements for backup PVC (may be similar to existing postgres PVC backing up from)
                   type: string
                 backup_storage_class:
                   description: Storage class to use when creating PVC for backup
@@ -58,6 +58,10 @@ spec:
                 no_log:
                   description: Configure no_log for no_log tasks
                   type: string
+                set_self_labels:
+                  description: Maintain some of the recommended `app.kubernetes.io/*` labels on the resource (self)
+                  type: boolean
+                  default: true
             status:
               type: object
               properties:
