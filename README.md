@@ -241,7 +241,7 @@ awx-demo-service    NodePort    10.109.40.38   <none>        80:31006/TCP   3m56
 Once deployed, the AWX instance will be accessible by running:
 
 ```
-$ minikube service awx-demo-service --url -n $NAMESPACE
+$ minikube service awx-demo-service --url
 ```
 
 By default, the admin user is `admin` and the password is available in the `<resourcename>-admin-password` secret. To retrieve the admin password, run:
@@ -785,7 +785,9 @@ To create the secrets, you can use the commands below:
 
 #### Enabling LDAP Integration at AWX bootstrap
 
-A sample of extra settings can be found as below:
+A sample of extra settings can be found as below. All possible options can be found here: https://django-auth-ldap.readthedocs.io/en/latest/reference.html#settings
+
+> **NOTE:** These values are inserted into a Python file, so pay close attention to which values need quotes and which do not.
 
 ```yaml
     - setting: AUTH_LDAP_SERVER_URI
@@ -801,6 +803,9 @@ A sample of extra settings can be found as below:
 
     - setting: AUTH_LDAP_GROUP_SEARCH
       value: 'LDAPSearch("OU=Groups,DC=abc,DC=com",ldap.SCOPE_SUBTREE,"(objectClass=group)",)'
+
+    - setting: AUTH_LDAP_GROUP_TYPE
+      value: 'GroupOfNamesType(name_attr="cn")'
 
     - setting: AUTH_LDAP_USER_ATTR_MAP
       value: '{"first_name": "givenName","last_name": "sn","email": "mail"}'

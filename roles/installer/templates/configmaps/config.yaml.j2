@@ -18,7 +18,8 @@ data:
   settings: |
     import os
     import socket
-    from django_auth_ldap.config import LDAPSearch
+    # Import all so that extra_settings works properly
+    from django_auth_ldap.config import *
     
     def get_secret():
         if os.path.exists("/etc/tower/SECRET_KEY"):
@@ -42,10 +43,19 @@ data:
     SYSTEM_TASK_ABS_CPU = '{{ task_resource_requirements["limits"]["cpu"] }}'
 {% endif %}
 
+{%- set cpu_limit = task_resource_requirements["limits"]["cpu"] if "limits" in task_resource_requirements and "cpu" in task_resource_requirements["limits"] -%}
+{%- if cpu_limit is defined -%}
+{%- set callback_receiver_cpu = cpu_limit | cpu_string_to_decimal -%}
+{%- if callback_receiver_cpu |int > 4 -%}
+# Set callback receiver workers based off cpu limit, default workers are 4, but if we have more than 4 cpu we can set higher value for workers
+    JOB_EVENT_WORKERS = {{ callback_receiver_cpu }}
+{%- endif -%}
+{%- endif %}
+
     SECRET_KEY = get_secret()
-    
+
     ALLOWED_HOSTS = ['*']
-    
+
     INTERNAL_API_URL = 'http://127.0.0.1:8052'
 
     # Sets Ansible Collection path
@@ -72,34 +82,11 @@ data:
     EMAIL_HOST_USER = ''
     EMAIL_HOST_PASSWORD = ''
     EMAIL_USE_TLS = False
-    
-    LOGGING['handlers']['console'] = {
-        '()': 'logging.StreamHandler',
-        'level': 'DEBUG',
-        'formatter': 'simple',
-        'filters': ['guid'],
-    }
-    
-    LOGGING['loggers']['django.request']['handlers'] = ['console']
-    LOGGING['loggers']['rest_framework.request']['handlers'] = ['console']
-    LOGGING['loggers']['awx']['handlers'] = ['console', 'external_logger']
-    LOGGING['loggers']['awx.main.commands.run_callback_receiver']['handlers'] = ['console']
-    LOGGING['loggers']['awx.main.tasks']['handlers'] = ['console', 'external_logger']
-    LOGGING['loggers']['awx.main.scheduler']['handlers'] = ['console', 'external_logger']
-    LOGGING['loggers']['django_auth_ldap']['handlers'] = ['console']
-    LOGGING['loggers']['social']['handlers'] = ['console']
-    LOGGING['loggers']['system_tracking_migrations']['handlers'] = ['console']
-    LOGGING['loggers']['rbac_migrations']['handlers'] = ['console']
-    LOGGING['handlers']['callback_receiver'] = {'class': 'logging.NullHandler'}
-    LOGGING['handlers']['task_system'] = {'class': 'logging.NullHandler'}
-    LOGGING['handlers']['tower_warnings'] = {'class': 'logging.NullHandler'}
-    LOGGING['handlers']['rbac_migrations'] = {'class': 'logging.NullHandler'}
-    LOGGING['handlers']['system_tracking_migrations'] = {'class': 'logging.NullHandler'}
-    LOGGING['handlers']['management_playbooks'] = {'class': 'logging.NullHandler'}
 
     USE_X_FORWARDED_PORT = True
     BROADCAST_WEBSOCKET_PORT = 8052
     BROADCAST_WEBSOCKET_PROTOCOL = 'http'
+
 
 {% for item in extra_settings | default([]) %}
     {{ item.setting }} = {{ item.value }}
