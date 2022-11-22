@@ -296,8 +296,8 @@ helm-chart: helm-chart-generate
 helm-chart-generate: kustomize helm kubectl-slice yq charts
 	@echo "== KUSTOMIZE: Set image and chart label =="
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
-	cd config/manager && $(KUSTOMIZE) edit set label helm.sh/chart:$(CHART_NAME)-$(VERSION)
-	cd config/default && $(KUSTOMIZE) edit set label helm.sh/chart:$(CHART_NAME)-$(VERSION)
+	cd config/manager && $(KUSTOMIZE) edit set label helm.sh/chart:$(CHART_NAME)
+	cd config/default && $(KUSTOMIZE) edit set label helm.sh/chart:$(CHART_NAME)
 
 	@echo "== Gather Helm Chart Metadata =="
 	# remove the existing chart if it exists
@@ -355,7 +355,7 @@ helm-package: cr helm-chart
 	$(CR) package ./charts/awx-operator
 
 # List all tags oldest to newest.
-TAGS := $(shell git tag -l  --sort=creatordate)
+TAGS := $(shell git ls-remote --tags --sort=version:refname --refs -q | cut -d/ -f3)
 
 # The actual release happens in ansible/helm-release.yml
 # until https://github.com/helm/chart-releaser/issues/122 happens
